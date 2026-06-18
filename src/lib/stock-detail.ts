@@ -71,7 +71,7 @@ export async function getStockDetail(symbolInput: string, selectedRange: StockRa
     });
     if (!points.length) return null;
     const price = Number(meta.regularMarketPrice) || points.at(-1)?.close || 0;
-    const previousClose = Number(meta.chartPreviousClose) || Number(meta.previousClose) || points[0].close;
+    const previousClose = Number(meta.previousClose) || Number(meta.chartPreviousClose) || points[0].close;
     const rangeStart = points[0].close;
     const name = String(meta.longName || meta.shortName || symbol);
     const news = await getStockNews(symbol, name);
