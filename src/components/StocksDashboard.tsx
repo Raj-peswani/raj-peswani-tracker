@@ -32,14 +32,14 @@ function StockRows({ stocks, limit }: { stocks: StockSnapshot[]; limit: number }
   return (
     <div className="divide-y divide-[#e4e6df]">
       {stocks.slice(0, limit).map((stock, index) => (
-        <div key={stock.symbol} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 py-3.5">
+        <Link href={`/stocks/${encodeURIComponent(stock.symbol)}`} key={stock.symbol} className="grid grid-cols-[28px_1fr_auto] items-center gap-3 rounded-xl px-2 py-3.5 transition hover:bg-[#f3f5f0]">
           <span className="font-mono text-[10px] text-[#9a9f96]">{String(index + 1).padStart(2, "0")}</span>
           <div className="min-w-0">
             <div className="flex items-baseline gap-2"><span className="font-mono text-sm font-bold text-[#232621]">{stock.symbol}</span><span className="truncate text-xs text-[#7a8076]">{stock.name}</span></div>
             <span className="mt-0.5 block font-mono text-[11px] text-[#555b52]">{currency(stock.price)}</span>
           </div>
           <Change value={stock.periodChange} />
-        </div>
+        </Link>
       ))}
     </div>
   );
@@ -143,12 +143,13 @@ function Watchlist({ initialQuotes }: { initialQuotes: StockSnapshot[] }) {
           <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_auto] gap-4 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[#949a90]"><span>Company</span><span>Price</span><span>Day move</span><span>Sector</span><span /></div>
           <div className="divide-y divide-[#e5e7e1]">
             {quotes.map((quote) => (
-              <div key={quote.symbol} className="grid grid-cols-[1.4fr_1fr_1fr_1fr_auto] items-center gap-4 rounded-xl px-3 py-3 transition hover:bg-[#f5f6f2]">
-                <div className="min-w-0"><span className="font-mono text-sm font-bold">{quote.symbol}</span><span className="ml-2 truncate text-xs text-[#7a8076]">{quote.name}</span></div>
-                <span className="font-mono text-sm font-semibold">{currency(quote.price)}</span>
-                <Change value={quote.changePercent} />
-                <span className="truncate text-xs text-[#71776e]">{quote.sector}</span>
-                <button type="button" onClick={() => removeSymbol(quote.symbol)} aria-label={`Remove ${quote.symbol}`} className={`grid h-7 w-7 place-items-center rounded-full text-sm text-[#bd4435] transition hover:bg-[#faeae7] ${editing ? "visible opacity-100" : "invisible opacity-0"}`}>×</button>
+              <div key={quote.symbol} className="group relative grid grid-cols-[1.4fr_1fr_1fr_1fr_auto] items-center gap-4 rounded-xl px-3 py-3 transition hover:bg-[#f5f6f2]">
+                <Link href={`/stocks/${encodeURIComponent(quote.symbol)}`} aria-label={`View ${quote.symbol} chart and news`} className="absolute inset-0 z-10 rounded-xl" />
+                <div className="pointer-events-none relative z-20 min-w-0"><span className="font-mono text-sm font-bold group-hover:text-[#e85d24]">{quote.symbol}</span><span className="ml-2 truncate text-xs text-[#7a8076]">{quote.name}</span></div>
+                <span className="pointer-events-none relative z-20 font-mono text-sm font-semibold">{currency(quote.price)}</span>
+                <span className="pointer-events-none relative z-20"><Change value={quote.changePercent} /></span>
+                <span className="pointer-events-none relative z-20 truncate text-xs text-[#71776e]">{quote.sector}</span>
+                <button type="button" onClick={() => removeSymbol(quote.symbol)} aria-label={`Remove ${quote.symbol}`} className={`relative z-30 grid h-7 w-7 place-items-center rounded-full text-sm text-[#bd4435] transition hover:bg-[#faeae7] ${editing ? "visible opacity-100" : "invisible opacity-0"}`}>×</button>
               </div>
             ))}
             {!quotes.length && <p className="py-10 text-center text-sm text-[#7c8278]">Your watchlist is empty. Add a ticker above.</p>}

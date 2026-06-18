@@ -100,3 +100,30 @@ export type MarketBetsData = {
   countryMovers: CountryMover[];
   updatedAt: string;
 };
+
+export type StockChartPoint = {
+  timestamp: number;
+  close: number;
+};
+
+export type StockDetailData = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  currency: string;
+  price: number;
+  previousClose: number;
+  dayChange: number;
+  dayChangePercent: number;
+  rangeChange: number;
+  rangeChangePercent: number;
+  dayHigh: number;
+  dayLow: number;
+  volume: number;
+  fiftyTwoWeekHigh: number;
+  fiftyTwoWeekLow: number;
+  marketTime: number;
+  range: string;
+  points: StockChartPoint[];
+  news: Story[];
+};
