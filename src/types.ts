@@ -64,3 +64,39 @@ export type StocksData = {
   decliners: StockSnapshot[];
   sectors: SectorMovers[];
 };
+
+export type PoliticalTrade = {
+  politician: string;
+  chamber: "House" | "Senate";
+  state: string;
+  ticker: string | null;
+  asset: string;
+  amount: string;
+  transactionDate: string;
+  filingDate: string;
+  sourceUrl: string;
+};
+
+export type InstitutionalPut = {
+  manager: string;
+  issuer: string;
+  reportedValue: number;
+  shares: number;
+  reportDate: string;
+  sourceUrl: string;
+};
+
+export type CountryMover = {
+  country: string;
+  index: string;
+  symbol: string;
+  value: number;
+  monthlyChange: number;
+};
+
+export type MarketBetsData = {
+  politicalTrades: PoliticalTrade[];
+  institutionalPuts: InstitutionalPut[];
+  countryMovers: CountryMover[];
+  updatedAt: string;
+};

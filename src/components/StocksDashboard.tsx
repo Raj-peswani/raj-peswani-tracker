@@ -213,15 +213,16 @@ export default function StocksDashboard({ initialWatchlist, initialMovers, ipos 
           <nav className="flex items-center gap-2 rounded-full border border-[#d9dbd4] bg-white p-1 text-xs font-semibold">
             <Link href="/" className="rounded-full px-4 py-2 text-[#666c63] transition hover:text-[#e85d24]">News</Link>
             <span className="rounded-full bg-[#20231f] px-4 py-2 text-white">Stocks</span>
+            <Link href="/market-bets" className="rounded-full px-4 py-2 text-[#666c63] transition hover:text-[#e85d24]">Market Bets</Link>
           </nav>
           <span className="hidden font-mono text-[9px] uppercase tracking-[0.14em] text-[#858b81] md:block">US market desk</span>
         </div>
       </header>
 
       <div className="mx-auto max-w-[1500px] px-5 sm:px-8">
-        <section className="grid gap-8 pb-9 pt-14 lg:grid-cols-[1fr_auto] lg:items-end lg:pt-20">
-          <div><div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#e85d24]" />Stocks / United States</div><h1 className="max-w-5xl text-5xl font-semibold leading-[0.98] tracking-[-0.06em] text-[#1c1f1b] sm:text-7xl lg:text-[82px]">Watch what matters.<br /><span className="text-[#8c9188]">Move with the market.</span></h1></div>
-          <p className="max-w-sm border-l border-[#cfd2ca] pl-5 text-sm leading-relaxed text-[#656b62]">Your editable watchlist, the strongest and weakest US stocks, sector leadership, and the newest public offerings in one focused view.</p>
+        <section className="flex flex-col gap-2 py-7 sm:flex-row sm:items-end sm:justify-between">
+          <div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">US market desk</p><h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-[#1c1f1b]">Stocks & Watchlist</h1></div>
+          <p className="max-w-xl text-sm text-[#656b62]">Watchlist, movers, sectors, and new listings.</p>
         </section>
 
         <Watchlist initialQuotes={initialWatchlist} />

@@ -96,29 +96,21 @@ export default function Dashboard({ data }: { data: DashboardData }) {
         <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-3 sm:px-8">
           <a href="#top" className="flex items-center gap-3">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-[#20231f] text-xs font-bold text-white">RP</span>
-            <span className="text-sm font-semibold tracking-tight text-[#292c27]">Raj Peswani&apos;s Tracker</span>
+            <span className="hidden text-sm font-semibold tracking-tight text-[#292c27] lg:block">Raj Peswani&apos;s Tracker</span>
           </a>
-          <nav className="hidden items-center gap-6 text-xs font-medium text-[#666c63] md:flex">
-            <Link className="rounded-full bg-[#20231f] px-3 py-1.5 text-white transition hover:bg-[#e85d24]" href="/stocks">Stocks</Link>
-            <a className="transition hover:text-[#e85d24]" href="#top-stories">Briefing</a>
-            <a className="transition hover:text-[#e85d24]" href="#markets-tech">Markets & Tech</a>
-            <a className="transition hover:text-[#e85d24]" href="#deals">Deals</a>
-            <a className="transition hover:text-[#e85d24]" href="#real-estate">Pune RE</a>
+          <nav className="flex items-center gap-1 rounded-full border border-[#d9dbd4] bg-white p-1 text-[11px] font-semibold sm:gap-2 sm:text-xs">
+            <span className="rounded-full bg-[#20231f] px-3 py-2 text-white sm:px-4">News</span>
+            <Link className="rounded-full px-3 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/stocks">Stocks</Link>
+            <Link className="rounded-full px-3 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/market-bets">Market Bets</Link>
           </nav>
-          <RefreshButton />
+          <div className="hidden sm:block"><RefreshButton /></div>
         </div>
       </header>
 
       <div id="top" className="mx-auto max-w-[1500px] px-5 sm:px-8">
-        <section className="grid gap-8 pb-8 pt-14 lg:grid-cols-[1fr_auto] lg:items-end lg:pt-20">
-          <div>
-            <div className="mb-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]"><span className="h-2 w-2 animate-pulse rounded-full bg-[#e85d24]" />Live intelligence dashboard</div>
-            <h1 className="max-w-4xl text-5xl font-semibold leading-[0.98] tracking-[-0.06em] text-[#1c1f1b] sm:text-7xl lg:text-[86px]">Markets move.<br /><span className="text-[#8c9188]">Stay ahead.</span></h1>
-          </div>
-          <div className="max-w-sm border-l border-[#cfd2ca] pl-5 lg:mb-1">
-            <p className="text-sm leading-relaxed text-[#656b62]">A focused hourly view of global markets, business, technology, deals, and Pune&apos;s real-estate corridor.</p>
-            <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.12em] text-[#8a8f86]">{date}<br />Updated {time}</p>
-          </div>
+        <section className="flex flex-col gap-2 py-7 sm:flex-row sm:items-end sm:justify-between">
+          <div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Live dashboard</p><h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-[#1c1f1b]">News & Markets</h1></div>
+          <p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#8a8f86]">{date} / Updated {time}</p>
         </section>
       </div>
 
