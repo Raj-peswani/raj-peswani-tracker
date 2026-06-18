@@ -1,4 +1,5 @@
 import RefreshButton from "@/components/RefreshButton";
+import Link from "next/link";
 import type { DashboardData, MarketQuote, NewsSection, Story, StoryGroup } from "@/types";
 
 function formatValue(value: number) {
@@ -98,6 +99,7 @@ export default function Dashboard({ data }: { data: DashboardData }) {
             <span className="text-sm font-semibold tracking-tight text-[#292c27]">Raj Peswani&apos;s Tracker</span>
           </a>
           <nav className="hidden items-center gap-6 text-xs font-medium text-[#666c63] md:flex">
+            <Link className="rounded-full bg-[#20231f] px-3 py-1.5 text-white transition hover:bg-[#e85d24]" href="/stocks">Stocks</Link>
             <a className="transition hover:text-[#e85d24]" href="#top-stories">Briefing</a>
             <a className="transition hover:text-[#e85d24]" href="#markets-tech">Markets & Tech</a>
             <a className="transition hover:text-[#e85d24]" href="#deals">Deals</a>

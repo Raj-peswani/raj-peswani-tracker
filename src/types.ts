@@ -32,3 +32,35 @@ export type DashboardData = {
   newsSections: NewsSection[];
   realEstateGroups: StoryGroup[];
 };
+
+export type StockSnapshot = {
+  symbol: string;
+  name: string;
+  sector: string;
+  price: number;
+  change: number;
+  changePercent: number;
+  periodChange: number;
+};
+
+export type SectorMovers = {
+  sector: string;
+  stocks: StockSnapshot[];
+};
+
+export type IpoRecord = {
+  symbol: string;
+  company: string;
+  exchange: string;
+  price: string;
+  date: string;
+  offerAmount: string;
+  status: "Upcoming" | "Priced" | "Filed";
+};
+
+export type StocksData = {
+  period: "day" | "month" | "year";
+  gainers: StockSnapshot[];
+  decliners: StockSnapshot[];
+  sectors: SectorMovers[];
+};
