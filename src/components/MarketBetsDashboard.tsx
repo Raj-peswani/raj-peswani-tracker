@@ -84,7 +84,7 @@ export default function MarketBetsDashboard({ data: initialData }: { data: Marke
   const [searching, setSearching] = useState(false);
   const [searchResult, setSearchResult] = useState<InstitutionalSearchResult | null>(null);
   const [searchError, setSearchError] = useState("");
-  const updated = new Date(data.updatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const updated = new Date(data.updatedAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
 
   async function refreshMarket() {
     setRefreshing(true);

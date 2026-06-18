@@ -29,7 +29,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head><script dangerouslySetInnerHTML={{ __html: `try{const saved=localStorage.getItem('raj-tracker-theme');const dark=saved?saved==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',dark)}catch{}` }} /></head>
+      <head><script dangerouslySetInnerHTML={{ __html: `let saved='';try{saved=localStorage.getItem('raj-tracker-theme')||''}catch{}if(!saved){saved=(document.cookie.match(/(?:^|; )raj-tracker-theme=(dark|light)/)||[])[1]||''}const dark=saved?saved==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',dark)` }} /></head>
       <body className="min-h-full flex flex-col">{children}<ThemeToggle /></body>
     </html>
   );

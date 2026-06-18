@@ -8,13 +8,19 @@ export default function ThemeToggle() {
   const [dark, setDark] = useState(false);
 
   useEffect(() => {
-    queueMicrotask(() => setDark(document.documentElement.classList.contains("dark")));
+    queueMicrotask(() => {
+      const saved = window.localStorage.getItem(themeKey);
+      const next = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+      document.documentElement.classList.toggle("dark", next);
+      setDark(next);
+    });
   }, []);
 
   function toggleTheme() {
     const next = !document.documentElement.classList.contains("dark");
     document.documentElement.classList.toggle("dark", next);
     window.localStorage.setItem(themeKey, next ? "dark" : "light");
+    document.cookie = `${themeKey}=${next ? "dark" : "light"}; path=/; max-age=31536000; samesite=lax`;
     setDark(next);
   }
 
