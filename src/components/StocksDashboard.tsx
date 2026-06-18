@@ -273,10 +273,11 @@ export default function StocksDashboard({ initialWatchlist, initialMovers, ipos 
       <header className="sticky top-0 z-20 border-b border-[#dcddd7] bg-[#f7f8f4]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-3 sm:px-8">
           <Link href="/" className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#20231f] text-xs font-bold text-white">RP</span><span className="hidden text-sm font-semibold tracking-tight text-[#292c27] sm:block">Raj Peswani&apos;s Tracker</span></Link>
-          <nav className="flex items-center gap-2 rounded-full border border-[#d9dbd4] bg-white p-1 text-xs font-semibold">
-            <Link href="/" className="rounded-full px-4 py-2 text-[#666c63] transition hover:text-[#e85d24]">News</Link>
-            <span className="rounded-full bg-[#20231f] px-4 py-2 text-white">Stocks</span>
-            <Link href="/market-bets" className="rounded-full px-4 py-2 text-[#666c63] transition hover:text-[#e85d24]">Market Bets</Link>
+          <nav className="flex items-center gap-1 rounded-full border border-[#d9dbd4] bg-white p-1 text-[10px] font-semibold sm:gap-2 sm:text-xs">
+            <Link href="/" className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4">News</Link>
+            <span className="rounded-full bg-[#20231f] px-2.5 py-2 text-white sm:px-4">Stocks</span>
+            <Link href="/market-bets" className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4">Market Bets</Link>
+            <Link href="/quant" className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4">Quant</Link>
           </nav>
           <span className="hidden font-mono text-[9px] uppercase tracking-[0.14em] text-[#858b81] md:block">US market desk</span>
         </div>

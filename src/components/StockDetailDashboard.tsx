@@ -105,7 +105,7 @@ export default function StockDetailDashboard({ initialDetail }: { initialDetail:
     <main>
       <header className="sticky top-0 z-20 border-b border-[#dcddd7] bg-[#f7f8f4]/90 backdrop-blur-xl"><div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-3 sm:px-8">
         <Link href="/stocks" className="flex items-center gap-2 text-xs font-semibold text-[#5f655c] transition hover:text-[#e85d24]"><span className="text-lg">←</span> Stocks</Link>
-        <nav className="flex items-center gap-1 rounded-full border border-[#d9dbd4] bg-white p-1 text-[11px] font-semibold sm:gap-2 sm:text-xs"><Link href="/" className="rounded-full px-3 py-2 text-[#666c63] hover:text-[#e85d24] sm:px-4">News</Link><Link href="/stocks" className="rounded-full bg-[#20231f] px-3 py-2 text-white sm:px-4">Stocks</Link><Link href="/market-bets" className="rounded-full px-3 py-2 text-[#666c63] hover:text-[#e85d24] sm:px-4">Market Bets</Link></nav>
+        <nav className="flex items-center gap-1 rounded-full border border-[#d9dbd4] bg-white p-1 text-[10px] font-semibold sm:gap-2 sm:text-xs"><Link href="/" className="rounded-full px-2.5 py-2 text-[#666c63] hover:text-[#e85d24] sm:px-4">News</Link><Link href="/stocks" className="rounded-full bg-[#20231f] px-2.5 py-2 text-white sm:px-4">Stocks</Link><Link href="/market-bets" className="rounded-full px-2.5 py-2 text-[#666c63] hover:text-[#e85d24] sm:px-4">Market Bets</Link><Link href="/quant" className="rounded-full px-2.5 py-2 text-[#666c63] hover:text-[#e85d24] sm:px-4">Quant</Link></nav>
         <span className="hidden font-mono text-[9px] uppercase tracking-[0.14em] text-[#858b81] md:block">{detail.exchange}</span>
       </div></header>
 

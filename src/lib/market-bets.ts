@@ -1,7 +1,8 @@
 import AdmZip from "adm-zip";
 import { XMLParser } from "fast-xml-parser";
 import { PDFParse } from "pdf-parse";
-import type { CountryMover, InstitutionalOption, MarketBetsData, OptionSentiment, PoliticalTrade } from "@/types";
+import { stockUniverse } from "@/lib/stock-universe";
+import type { CountryMover, InstitutionalOption, InstitutionalSearchResult, MarketBetsData, OptionSentiment, PoliticalTrade } from "@/types";
 
 type HouseIndexEntry = {
   First?: string;
@@ -159,7 +160,17 @@ const issuerTickers: Array<[RegExp, string]> = [
 ];
 
 function inferTicker(cusip: string, issuer: string) {
-  return tickerByCusip[cusip] ?? issuerTickers.find(([pattern]) => pattern.test(issuer))?.[1] ?? null;
+  const direct = tickerByCusip[cusip] ?? issuerTickers.find(([pattern]) => pattern.test(issuer))?.[1];
+  if (direct) return direct;
+  const normalizedIssuer = normalizeCompanyName(issuer);
+  return stockUniverse.find((stock) => {
+    const normalizedName = normalizeCompanyName(stock.name);
+    return normalizedName.length >= 3 && (normalizedIssuer.includes(normalizedName) || normalizedName.includes(normalizedIssuer));
+  })?.symbol ?? null;
+}
+
+function normalizeCompanyName(value: string) {
+  return value.toUpperCase().replace(/\b(INCORPORATED|INC|CORPORATION|CORP|COMPANY|CO|PLC|LTD|LIMITED|HOLDINGS|HLDGS|GROUP|CLASS|COMMON|STOCK)\b/g, " ").replace(/[^A-Z0-9]/g, "").trim();
 }
 
 function optionTheme(position: InstitutionalOption): OptionSentiment["theme"] | null {
@@ -231,14 +242,14 @@ async function getInstitutionalOptions() {
   };
 }
 
-async function getCountryMovers(): Promise<CountryMover[]> {
+async function getCountryMovers(forceMarket = false): Promise<CountryMover[]> {
   try {
     const batches = [countryIndices.slice(0, 11), countryIndices.slice(11)];
     const payloads = [];
     for (const batch of batches) {
       const symbols = batch.map((entry) => entry[2]).join(",");
       const response = await fetch(`https://query1.finance.yahoo.com/v7/finance/spark?symbols=${encodeURIComponent(symbols)}&range=1mo&interval=1d`, {
-        next: { revalidate: 3600 }, headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(8000),
+        ...(forceMarket ? { cache: "no-store" as const } : { next: { revalidate: 3600 } }), headers: { "User-Agent": "Mozilla/5.0" }, signal: AbortSignal.timeout(8000),
       });
       if (response.ok) payloads.push(await response.json());
     }
@@ -258,9 +269,42 @@ async function getCountryMovers(): Promise<CountryMover[]> {
   }
 }
 
-export async function getMarketBetsData(): Promise<MarketBetsData> {
+export async function searchInstitutionalOptions(symbolInput: string): Promise<InstitutionalSearchResult> {
+  const symbol = symbolInput.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").slice(0, 12);
+  const universeEntry = stockUniverse.find((stock) => stock.symbol === symbol);
+  let companyName = universeEntry?.name ?? symbol;
+  if (!universeEntry) {
+    try {
+      const response = await fetch(`https://api.nasdaq.com/api/company/${encodeURIComponent(symbol)}/company-profile`, {
+        headers: { "User-Agent": "Mozilla/5.0", Accept: "application/json,text/plain,*/*", Referer: `https://www.nasdaq.com/market-activity/stocks/${symbol.toLowerCase()}` },
+        next: { revalidate: 21600 }, signal: AbortSignal.timeout(7000),
+      });
+      if (response.ok) companyName = (await response.json())?.data?.CompanyName?.value ?? companyName;
+    } catch {
+      companyName = symbol;
+    }
+  }
+  const results = await Promise.allSettled(secManagers.map(getManagerOptions));
+  const positions = results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
+  const available = positions.length ? positions : institutionalFallback;
+  const normalizedName = normalizeCompanyName(companyName);
+  const matching = available.filter((position) => {
+    if (position.ticker === symbol) return true;
+    const normalizedIssuer = normalizeCompanyName(position.issuer);
+    return normalizedName.length >= 3 && (normalizedIssuer.includes(normalizedName) || normalizedName.includes(normalizedIssuer));
+  });
+  return {
+    symbol,
+    companyName,
+    calls: matching.filter((position) => position.optionType === "CALL").sort((first, second) => second.reportedValue - first.reportedValue),
+    puts: matching.filter((position) => position.optionType === "PUT").sort((first, second) => second.reportedValue - first.reportedValue),
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+export async function getMarketBetsData(forceMarket = false): Promise<MarketBetsData> {
   const [politicalTrades, institutionalOptions, countryMovers] = await Promise.all([
-    getHousePurchases(), getInstitutionalOptions(), getCountryMovers(),
+    getHousePurchases(), getInstitutionalOptions(), getCountryMovers(forceMarket),
   ]);
   return { politicalTrades, ...institutionalOptions, countryMovers, updatedAt: new Date().toISOString() };
 }

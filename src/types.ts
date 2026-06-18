@@ -122,6 +122,57 @@ export type MarketBetsData = {
   updatedAt: string;
 };
 
+export type InstitutionalSearchResult = {
+  symbol: string;
+  companyName: string;
+  calls: InstitutionalOption[];
+  puts: InstitutionalOption[];
+  updatedAt: string;
+};
+
+export type QuantAnalysis = {
+  symbol: string;
+  name: string;
+  price: number;
+  changePercent: number;
+  setupScore: number;
+  setupLabel: "Strong setup" | "Constructive" | "Neutral" | "Caution";
+  technical: {
+    sma20: number;
+    sma50: number;
+    sma200: number;
+    rsi14: number;
+    macd: number;
+    signal: number;
+    atr14: number;
+    volatility: number;
+    return20Day: number;
+    support: number;
+    resistance: number;
+    stopReference: number;
+    twoRTarget: number;
+  };
+  fundamentals: {
+    sector: string;
+    industry: string;
+    oneYearTarget: number | null;
+    targetUpside: number | null;
+    revenueGrowth: number | null;
+    netIncomeGrowth: number | null;
+    profitMargin: number | null;
+    currentRatio: number | null;
+  };
+  options: StockSignal;
+  scores: {
+    trend: number;
+    momentum: number;
+    risk: number;
+    fundamentals: number;
+  };
+  signals: Array<{ label: string; detail: string; tone: "positive" | "neutral" | "negative" }>;
+  updatedAt: string;
+};
+
 export type StockChartPoint = {
   timestamp: number;
   close: number;
