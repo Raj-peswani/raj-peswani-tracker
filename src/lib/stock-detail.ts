@@ -14,6 +14,21 @@ export type StockRange = keyof typeof stockRanges;
 
 const parser = new XMLParser({ ignoreAttributes: false });
 
+async function getPreviousTradingClose(symbol: string) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=5d&interval=1d`;
+  const response = await fetch(url, {
+    next: { revalidate: 300 },
+    headers: { "User-Agent": "Mozilla/5.0" },
+    signal: AbortSignal.timeout(7000),
+  });
+  if (!response.ok) return 0;
+  const payload = await response.json();
+  const closes = (payload?.chart?.result?.[0]?.indicators?.quote?.[0]?.close ?? []).filter(
+    (close: unknown): close is number => typeof close === "number" && Number.isFinite(close),
+  );
+  return closes.at(-2) ?? 0;
+}
+
 function asArray<T>(value: T | T[] | undefined): T[] {
   if (!value) return [];
   return Array.isArray(value) ? value : [value];
@@ -71,7 +86,9 @@ export async function getStockDetail(symbolInput: string, selectedRange: StockRa
     });
     if (!points.length) return null;
     const price = Number(meta.regularMarketPrice) || points.at(-1)?.close || 0;
-    const previousClose = Number(meta.previousClose) || Number(meta.chartPreviousClose) || points[0].close;
+    const previousClose = selectedRange === "1D"
+      ? Number(meta.chartPreviousClose) || points[0].close
+      : await getPreviousTradingClose(symbol) || Number(meta.chartPreviousClose) || points[0].close;
     const rangeStart = points[0].close;
     const name = String(meta.longName || meta.shortName || symbol);
     const news = await getStockNews(symbol, name);
