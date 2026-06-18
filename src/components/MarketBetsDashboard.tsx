@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { CountryMover, InstitutionalPut, MarketBetsData, PoliticalTrade } from "@/types";
+import type { CountryMover, InstitutionalOption, MarketBetsData, OptionSentiment, PoliticalTrade } from "@/types";
 
 function number(value: number, maximumFractionDigits = 0) {
   return new Intl.NumberFormat("en-US", { maximumFractionDigits }).format(value);
@@ -40,11 +40,24 @@ function PoliticalTrades({ trades }: { trades: PoliticalTrade[] }) {
   );
 }
 
-function PutCard({ position }: { position: InstitutionalPut }) {
+function SentimentCard({ sentiment }: { sentiment: OptionSentiment }) {
+  const bullish = sentiment.callPercent >= sentiment.putPercent;
+  return (
+    <article className="overflow-hidden rounded-2xl border border-[#dfe1da] bg-white/75 p-5">
+      <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[9px] uppercase tracking-[0.14em] text-[#8a9087]">Call / put value</p><h3 className="mt-2 text-xl font-semibold tracking-tight">{sentiment.theme}</h3></div><span className={`rounded-full px-2.5 py-1 font-mono text-[9px] font-bold ${bullish ? "bg-[#e6f4ed] text-[#087553]" : "bg-[#faeae7] text-[#bc3c2c]"}`}>{bullish ? "CALL LEAN" : "PUT LEAN"}</span></div>
+      <div className="mt-6 flex items-end justify-between"><div><span className="font-mono text-3xl font-semibold text-[#087553]">{sentiment.callPercent}%</span><span className="ml-1 text-xs font-semibold text-[#087553]">calls</span></div><p className="font-mono text-sm font-semibold text-[#bc3c2c]">{sentiment.putPercent}% puts</p></div>
+      <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-[#faeae7]"><span className="bg-[#14936a]" style={{ width: `${sentiment.callPercent}%` }} /></div>
+      <div className="mt-4 flex justify-between font-mono text-[10px] text-[#7a8077]"><span>Calls {money(sentiment.callValue)}</span><span>Puts {money(sentiment.putValue)}</span></div>
+    </article>
+  );
+}
+
+function OptionCard({ position }: { position: InstitutionalOption }) {
+  const bullish = position.optionType === "CALL";
   return (
     <a href={position.sourceUrl} target="_blank" rel="noreferrer" className="block rounded-2xl border border-[#dfe1da] bg-white/70 p-4 transition hover:-translate-y-0.5 hover:border-[#bfc3ba] hover:shadow-md">
-      <div className="flex items-center justify-between"><span className="text-xs font-bold text-[#30342d]">{position.manager}</span><span className="rounded-full bg-[#faeae7] px-2 py-1 font-mono text-[9px] font-bold text-[#bc3c2c]">PUT</span></div>
-      <h3 className="mt-4 min-h-10 text-sm font-semibold leading-snug">{position.issuer}</h3>
+      <div className="flex items-center justify-between"><span className="text-xs font-bold text-[#30342d]">{position.manager}</span><span className={`rounded-full px-2 py-1 font-mono text-[9px] font-bold ${bullish ? "bg-[#e6f4ed] text-[#087553]" : "bg-[#faeae7] text-[#bc3c2c]"}`}>{position.optionType}</span></div>
+      <h3 className="mt-4 min-h-10 text-sm font-semibold leading-snug">{position.ticker && <span className="mr-2 font-mono text-[#e85d24]">{position.ticker}</span>}{position.issuer}</h3>
       <div className="mt-4 grid grid-cols-2 gap-3 border-t border-[#e1e3dc] pt-3"><div><p className="text-[9px] uppercase tracking-[0.12em] text-[#92978e]">Reported value</p><p className="mt-1 font-mono text-sm font-semibold">{money(position.reportedValue)}</p></div><div><p className="text-[9px] uppercase tracking-[0.12em] text-[#92978e]">Shares</p><p className="mt-1 font-mono text-sm font-semibold">{number(position.shares)}</p></div></div>
     </a>
   );
@@ -63,13 +76,17 @@ export default function MarketBetsDashboard({ data }: { data: MarketBetsData }) 
       <div className="mx-auto max-w-[1500px] px-5 sm:px-8">
         <section className="flex flex-col gap-2 py-7 sm:flex-row sm:items-end sm:justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Positioning monitor</p><h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Market Bets</h1></div><p className="font-mono text-[10px] uppercase tracking-[0.12em] text-[#8a8f86]">Updated {updated}</p></section>
 
+        <section className="border-t border-[#d8dad3] py-9"><div className="mb-6"><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Institutional options pulse</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Calls vs. Puts</h2><p className="mt-2 max-w-4xl text-sm leading-relaxed text-[#747a71]">Share of disclosed option value across tracked JPMorgan, Goldman Sachs, and Citigroup 13F positions. This is delayed institutional positioning—not live options flow.</p></div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{data.optionSentiment.map((sentiment) => <SentimentCard key={sentiment.theme} sentiment={sentiment} />)}</div></section>
+
         <section className="border-t border-[#d8dad3] py-9"><div className="mb-6"><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Global momentum</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Top Country Indexes / 1 Month</h2></div>
           {data.countryMovers.length ? <><div className="grid gap-4 md:grid-cols-3">{data.countryMovers.slice(0, 3).map((mover, index) => <CountryCard key={mover.symbol} mover={mover} rank={index + 1} />)}</div><details className="mt-4 rounded-2xl border border-[#dfe1da] bg-white/60"><summary className="cursor-pointer px-5 py-4 text-sm font-semibold">Full country ranking ({data.countryMovers.length})</summary><div className="divide-y divide-[#e2e4dd] border-t border-[#dfe1da] px-5">{data.countryMovers.map((mover, index) => <div key={mover.symbol} className="grid grid-cols-[36px_1fr_auto_auto] items-center gap-4 py-3 text-sm"><span className="font-mono text-[10px] text-[#969b92]">{index + 1}</span><span><strong>{mover.country}</strong><small className="ml-2 text-[#858b82]">{mover.index}</small></span><span className="font-mono text-xs">{number(mover.value, 2)}</span><span className={`font-mono text-xs font-semibold ${mover.monthlyChange >= 0 ? "text-[#087553]" : "text-[#bc3c2c]"}`}>{mover.monthlyChange >= 0 ? "+" : ""}{mover.monthlyChange.toFixed(2)}%</span></div>)}</div></details></> : <p className="rounded-2xl border border-[#dfe1da] bg-white/70 p-6 text-sm text-[#666c63]">Country-index feed is temporarily unavailable.</p>}
         </section>
 
         <section className="border-t border-[#d8dad3] py-9"><div className="mb-6"><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">STOCK Act disclosures</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Politician Purchases</h2><p className="mt-2 max-w-3xl text-sm text-[#747a71]">Official House periodic transaction reports. Amounts are ranges and filings may arrive weeks after the trade.</p></div><PoliticalTrades trades={data.politicalTrades} /></section>
 
-        <section className="border-t border-[#d8dad3] py-9"><div className="mb-6"><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">SEC 13F</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Institutional Bearish Signals</h2><p className="mt-2 max-w-4xl text-sm leading-relaxed text-[#747a71]">These are disclosed put-option positions, not confirmed short sales. A put can be a hedge, spread leg, or directional bet; 13F filings are quarterly and delayed.</p></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{data.institutionalPuts.map((position) => <PutCard key={`${position.sourceUrl}-${position.issuer}-${position.reportedValue}-${position.shares}`} position={position} />)}</div></section>
+        <section className="border-t border-[#d8dad3] py-9"><div className="mb-6"><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#087553]">SEC 13F / CALLS</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Institutional Bullish Signals</h2><p className="mt-2 max-w-4xl text-sm leading-relaxed text-[#747a71]">Largest disclosed call-option positions from the tracked banks. Calls can also be part of hedges or spreads, and 13F filings are quarterly and delayed.</p></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{data.institutionalCalls.map((position) => <OptionCard key={`${position.sourceUrl}-${position.issuer}-${position.reportedValue}-${position.shares}`} position={position} />)}</div></section>
+
+        <section className="border-t border-[#d8dad3] py-9"><div className="mb-6"><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">SEC 13F / PUTS</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Institutional Bearish Signals</h2><p className="mt-2 max-w-4xl text-sm leading-relaxed text-[#747a71]">These are disclosed put-option positions, not confirmed short sales. A put can be a hedge, spread leg, or directional bet; 13F filings are quarterly and delayed.</p></div><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">{data.institutionalPuts.map((position) => <OptionCard key={`${position.sourceUrl}-${position.issuer}-${position.reportedValue}-${position.shares}`} position={position} />)}</div></section>
       </div>
 
       <footer className="mt-6 bg-[#20231f] text-[#f4f5f1]"><div className="mx-auto flex max-w-[1500px] flex-col gap-3 px-5 py-8 sm:flex-row sm:items-center sm:justify-between sm:px-8"><p className="text-sm font-semibold">Sources: House Clerk / SEC EDGAR / Yahoo Finance</p><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8e948b]">Public disclosures / Not investment advice</p></div></footer>

@@ -77,13 +77,24 @@ export type PoliticalTrade = {
   sourceUrl: string;
 };
 
-export type InstitutionalPut = {
+export type InstitutionalOption = {
   manager: string;
   issuer: string;
+  ticker: string | null;
+  cusip?: string;
   reportedValue: number;
   shares: number;
   reportDate: string;
   sourceUrl: string;
+  optionType: "CALL" | "PUT";
+};
+
+export type OptionSentiment = {
+  theme: "Gold" | "Silver" | "Bitcoin" | "Tech";
+  callValue: number;
+  putValue: number;
+  callPercent: number;
+  putPercent: number;
 };
 
 export type CountryMover = {
@@ -96,7 +107,9 @@ export type CountryMover = {
 
 export type MarketBetsData = {
   politicalTrades: PoliticalTrade[];
-  institutionalPuts: InstitutionalPut[];
+  institutionalCalls: InstitutionalOption[];
+  institutionalPuts: InstitutionalOption[];
+  optionSentiment: OptionSentiment[];
   countryMovers: CountryMover[];
   updatedAt: string;
 };

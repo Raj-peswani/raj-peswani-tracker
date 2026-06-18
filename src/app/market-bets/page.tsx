@@ -6,7 +6,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Market Bets | Raj Peswani's Tracker",
-  description: "Public politician trades, institutional put positions, and monthly country-index leaders.",
+  description: "Institutional call and put signals, politician trades, and monthly country-index leaders.",
 };
 
 export default async function MarketBetsPage() {

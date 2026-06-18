@@ -1,7 +1,7 @@
 import AdmZip from "adm-zip";
 import { XMLParser } from "fast-xml-parser";
 import { PDFParse } from "pdf-parse";
-import type { CountryMover, InstitutionalPut, MarketBetsData, PoliticalTrade } from "@/types";
+import type { CountryMover, InstitutionalOption, MarketBetsData, OptionSentiment, PoliticalTrade } from "@/types";
 
 type HouseIndexEntry = {
   First?: string;
@@ -124,17 +124,64 @@ async function getHousePurchases(): Promise<PoliticalTrade[]> {
   }
 }
 
-const institutionalFallback: InstitutionalPut[] = [
-  { manager: "JPMorgan", issuer: "iShares Trust", reportedValue: 433455000, shares: 5500000, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/19617/000001961726000212/Information_Table_03.31.2026.xml" },
-  { manager: "JPMorgan", issuer: "SPDR S&P 500 ETF Trust", reportedValue: 315985000, shares: 500000, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/19617/000001961726000212/Information_Table_03.31.2026.xml" },
-  { manager: "Goldman Sachs", issuer: "Invesco QQQ Trust", reportedValue: 6128612676, shares: 10618200, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml" },
-  { manager: "Goldman Sachs", issuer: "SPDR S&P 500 ETF Trust", reportedValue: 5821648578, shares: 8951700, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml" },
-  { manager: "Goldman Sachs", issuer: "NVIDIA Corporation", reportedValue: 4404280160, shares: 25253900, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml" },
-  { manager: "Citigroup", issuer: "NVIDIA Corporation", reportedValue: 3350136800, shares: 19209500, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/831001/000083100126000022/CITIGROUP_13F_HR_INFOTABLE.xml" },
-  { manager: "Citigroup", issuer: "Apple Inc.", reportedValue: 2872699768, shares: 11319200, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/831001/000083100126000022/CITIGROUP_13F_HR_INFOTABLE.xml" },
+const institutionalFallback: InstitutionalOption[] = [
+  { manager: "Goldman Sachs", issuer: "NVIDIA Corporation", ticker: "NVDA", reportedValue: 4404280160, shares: 25253900, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml", optionType: "PUT" },
+  { manager: "Citigroup", issuer: "NVIDIA Corporation", ticker: "NVDA", reportedValue: 3350136800, shares: 19209500, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/831001/000083100126000022/CITIGROUP_13F_HR_INFOTABLE.xml", optionType: "PUT" },
+  { manager: "Citigroup", issuer: "Apple Inc.", ticker: "AAPL", reportedValue: 2872699768, shares: 11319200, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/831001/000083100126000022/CITIGROUP_13F_HR_INFOTABLE.xml", optionType: "PUT" },
+  { manager: "Goldman Sachs", issuer: "SPDR Gold Trust", ticker: "GLD", cusip: "78463V107", reportedValue: 479773350, shares: 1115000, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml", optionType: "PUT" },
+  { manager: "Goldman Sachs", issuer: "iShares Silver Trust", ticker: "SLV", cusip: "46428Q109", reportedValue: 232262004, shares: 3408600, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml", optionType: "PUT" },
+  { manager: "Goldman Sachs", issuer: "iShares Bitcoin Trust ETF", ticker: "IBIT", cusip: "46438F101", reportedValue: 625539072, shares: 16281600, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml", optionType: "PUT" },
+  { manager: "Goldman Sachs", issuer: "Taiwan Semiconductor", ticker: "TSM", reportedValue: 3898793970, shares: 11536600, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml", optionType: "CALL" },
+  { manager: "Citigroup", issuer: "Invesco QQQ Trust", ticker: "QQQ", cusip: "46090E103", reportedValue: 2276455638, shares: 3944100, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/831001/000083100126000022/CITIGROUP_13F_HR_INFOTABLE.xml", optionType: "CALL" },
+  { manager: "Goldman Sachs", issuer: "Apple Inc.", ticker: "AAPL", reportedValue: 2214850709, shares: 8727100, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml", optionType: "CALL" },
+  { manager: "Citigroup", issuer: "SPDR Gold Trust", ticker: "GLD", cusip: "78463V107", reportedValue: 1880066097, shares: 4369300, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/831001/000083100126000022/CITIGROUP_13F_HR_INFOTABLE.xml", optionType: "CALL" },
+  { manager: "Goldman Sachs", issuer: "iShares Silver Trust", ticker: "SLV", cusip: "46428Q109", reportedValue: 295884322, shares: 4342300, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml", optionType: "CALL" },
+  { manager: "Goldman Sachs", issuer: "iShares Bitcoin Trust ETF", ticker: "IBIT", cusip: "46438F101", reportedValue: 263046372, shares: 6846600, reportDate: "2026-03-31", sourceUrl: "https://www.sec.gov/Archives/edgar/data/886982/000088698226000274/InfoTable_20260513_FinalV.xml", optionType: "CALL" },
 ];
 
-async function getManagerPuts(manager: SecManager): Promise<InstitutionalPut[]> {
+const optionSentimentFallback: OptionSentiment[] = [
+  { theme: "Gold", callValue: 2806136235, putValue: 1173314772, callPercent: 71, putPercent: 29 },
+  { theme: "Silver", callValue: 419319932, putValue: 382790078, callPercent: 52, putPercent: 48 },
+  { theme: "Bitcoin", callValue: 263046372, putValue: 625539072, callPercent: 30, putPercent: 70 },
+  { theme: "Tech", callValue: 19041493250, putValue: 29600955027, callPercent: 39, putPercent: 61 },
+];
+
+const tickerByCusip: Record<string, string> = {
+  "78463V107": "GLD", "464285105": "IAU", "46428Q109": "SLV", "46438F101": "IBIT",
+  "315948109": "FBTC", "389637109": "GBTC", "09174C104": "BITB", "040919102": "ARKB",
+  "46090E103": "QQQ", "81369Y803": "XLK", "92189F676": "SMH",
+};
+
+const issuerTickers: Array<[RegExp, string]> = [
+  [/NVIDIA/i, "NVDA"], [/APPLE/i, "AAPL"], [/MICROSOFT/i, "MSFT"], [/AMAZON/i, "AMZN"],
+  [/ALPHABET/i, "GOOGL"], [/META PLATFORMS/i, "META"], [/TAIWAN SEMICONDUCTOR/i, "TSM"],
+  [/BROADCOM/i, "AVGO"], [/ADVANCED MICRO/i, "AMD"], [/PALANTIR/i, "PLTR"],
+];
+
+function inferTicker(cusip: string, issuer: string) {
+  return tickerByCusip[cusip] ?? issuerTickers.find(([pattern]) => pattern.test(issuer))?.[1] ?? null;
+}
+
+function optionTheme(position: InstitutionalOption): OptionSentiment["theme"] | null {
+  if (["GLD", "IAU"].includes(position.ticker ?? "")) return "Gold";
+  if (position.ticker === "SLV") return "Silver";
+  if (["IBIT", "FBTC", "GBTC", "BITB", "ARKB"].includes(position.ticker ?? "")) return "Bitcoin";
+  if (["QQQ", "XLK", "SMH", "NVDA", "AAPL", "MSFT", "AMZN", "GOOGL", "META", "TSM", "AVGO", "AMD", "PLTR"].includes(position.ticker ?? "")) return "Tech";
+  return null;
+}
+
+function summarizeOptionSentiment(positions: InstitutionalOption[]): OptionSentiment[] {
+  return (["Gold", "Silver", "Bitcoin", "Tech"] as const).map((theme) => {
+    const matching = positions.filter((position) => optionTheme(position) === theme);
+    const callValue = matching.filter((position) => position.optionType === "CALL").reduce((sum, position) => sum + position.reportedValue, 0);
+    const putValue = matching.filter((position) => position.optionType === "PUT").reduce((sum, position) => sum + position.reportedValue, 0);
+    const total = callValue + putValue;
+    const callPercent = total ? Math.round((callValue / total) * 100) : 0;
+    return { theme, callValue, putValue, callPercent, putPercent: total ? 100 - callPercent : 0 };
+  });
+}
+
+async function getManagerOptions(manager: SecManager): Promise<InstitutionalOption[]> {
   const submissions = await fetch(`https://data.sec.gov/submissions/CIK${manager.cik}.json`, {
     headers: secHeaders, next: { revalidate: 21600 }, signal: AbortSignal.timeout(8000),
   }).then((response) => response.json());
@@ -153,20 +200,35 @@ async function getManagerPuts(manager: SecManager): Promise<InstitutionalPut[]> 
   const xml = await fetch(`${baseUrl}/${infoFile}`, { headers: secHeaders, next: { revalidate: 21600 }, signal: AbortSignal.timeout(12000) }).then((response) => response.text());
   const parsed = new XMLParser({ removeNSPrefix: true }).parse(xml);
   const rows = toArray<Record<string, unknown>>(parsed?.informationTable?.infoTable);
-  return rows.filter((row) => String(row.putCall).toUpperCase() === "PUT").map((row) => {
+  return rows.filter((row) => ["CALL", "PUT"].includes(String(row.putCall).toUpperCase())).map((row) => {
     const shares = row.shrsOrPrnAmt as Record<string, number> | undefined;
+    const issuer = String(row.nameOfIssuer ?? "Unknown issuer");
+    const cusip = String(row.cusip ?? "");
     return {
-      manager: manager.manager, issuer: String(row.nameOfIssuer ?? "Unknown issuer"),
+      manager: manager.manager, issuer, ticker: inferTicker(cusip, issuer), cusip,
       reportedValue: Number(row.value) || 0, shares: Number(shares?.sshPrnamt) || 0,
       reportDate: String(submissions.filings.recent.reportDate[filingIndex] ?? ""), sourceUrl: `${baseUrl}/${infoFile}`,
+      optionType: String(row.putCall).toUpperCase() as "CALL" | "PUT",
     };
-  }).sort((a, b) => b.reportedValue - a.reportedValue).slice(0, 5);
+  });
 }
 
-async function getInstitutionalPuts() {
-  const results = await Promise.allSettled(secManagers.map(getManagerPuts));
+function topOptionsByManager(positions: InstitutionalOption[], optionType: InstitutionalOption["optionType"]) {
+  return secManagers.flatMap(({ manager }) => positions
+    .filter((position) => position.manager === manager && position.optionType === optionType)
+    .sort((first, second) => second.reportedValue - first.reportedValue)
+    .slice(0, 5));
+}
+
+async function getInstitutionalOptions() {
+  const results = await Promise.allSettled(secManagers.map(getManagerOptions));
   const positions = results.flatMap((result) => result.status === "fulfilled" ? result.value : []);
-  return positions.length ? positions : institutionalFallback;
+  const available = positions.length ? positions : institutionalFallback;
+  return {
+    institutionalCalls: topOptionsByManager(available, "CALL"),
+    institutionalPuts: topOptionsByManager(available, "PUT"),
+    optionSentiment: positions.length ? summarizeOptionSentiment(positions) : optionSentimentFallback,
+  };
 }
 
 async function getCountryMovers(): Promise<CountryMover[]> {
@@ -197,8 +259,8 @@ async function getCountryMovers(): Promise<CountryMover[]> {
 }
 
 export async function getMarketBetsData(): Promise<MarketBetsData> {
-  const [politicalTrades, institutionalPuts, countryMovers] = await Promise.all([
-    getHousePurchases(), getInstitutionalPuts(), getCountryMovers(),
+  const [politicalTrades, institutionalOptions, countryMovers] = await Promise.all([
+    getHousePurchases(), getInstitutionalOptions(), getCountryMovers(),
   ]);
-  return { politicalTrades, institutionalPuts, countryMovers, updatedAt: new Date().toISOString() };
+  return { politicalTrades, ...institutionalOptions, countryMovers, updatedAt: new Date().toISOString() };
 }
