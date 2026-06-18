@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
-import type { IpoRecord, SectorMovers, StockSnapshot, StocksData } from "@/types";
+import type { IpoRecord, SectorMovers, StockSignal, StockSnapshot, StocksData } from "@/types";
 
 const storageKey = "raj-tracker-watchlist";
 const periods: StocksData["period"][] = ["day", "month", "year"];
+const signalCache = new Map<string, StockSignal>();
 
 function currency(value: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
@@ -19,6 +20,57 @@ function saveSymbols(symbols: string[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(symbols));
 }
 
+function useStockSignals(symbols: string[]) {
+  const symbolKey = [...new Set(symbols)].sort().join(",");
+  const [signals, setSignals] = useState<Record<string, StockSignal>>({});
+
+  useEffect(() => {
+    const requested = symbolKey.split(",").filter(Boolean);
+    let cancelled = false;
+    const syncFromCache = () => setSignals(Object.fromEntries(requested.flatMap((symbol) => {
+      const signal = signalCache.get(symbol);
+      return signal ? [[symbol, signal]] : [];
+    })));
+    queueMicrotask(syncFromCache);
+
+    async function load() {
+      const missing = requested.filter((symbol) => !signalCache.has(symbol));
+      for (let index = 0; index < missing.length && !cancelled; index += 8) {
+        const batch = missing.slice(index, index + 8);
+        try {
+          const response = await fetch(`/api/stocks/signals?symbols=${encodeURIComponent(batch.join(","))}`);
+          if (!response.ok) continue;
+          const data = await response.json() as { signals?: StockSignal[] };
+          for (const signal of data.signals ?? []) signalCache.set(signal.symbol, signal);
+          if (!cancelled) syncFromCache();
+        } catch {
+          continue;
+        }
+      }
+    }
+
+    void load();
+    return () => { cancelled = true; };
+  }, [symbolKey]);
+
+  return signals;
+}
+
+function OptionRatio({ signal }: { signal?: StockSignal }) {
+  if (!signal) return <span className="font-mono text-[10px] text-[#9a9f96]">Loading…</span>;
+  if (signal.callPercent === null || signal.putPercent === null) return <span className="font-mono text-[10px] text-[#8b9087]">Options N/A</span>;
+  return <span className="inline-flex overflow-hidden rounded-full font-mono text-[10px] font-bold"><span className="bg-[#e6f4ed] px-2 py-1 text-[#087553]">C {signal.callPercent}%</span><span className="bg-[#faeae7] px-2 py-1 text-[#bc3c2c]">P {signal.putPercent}%</span></span>;
+}
+
+function AnalystRating({ signal }: { signal?: StockSignal }) {
+  if (!signal) return <span className="font-mono text-[10px] text-[#9a9f96]">Loading…</span>;
+  if (!signal.analystRating) return <span className="font-mono text-[10px] text-[#8b9087]">Not covered</span>;
+  const normalized = signal.analystRating.toLowerCase();
+  const positive = normalized.includes("buy") || normalized.includes("outperform") || normalized.includes("overweight");
+  const negative = normalized.includes("sell") || normalized.includes("underperform") || normalized.includes("underweight");
+  return <span className={`inline-flex rounded-full px-2 py-1 text-[10px] font-semibold ${positive ? "bg-[#e6f4ed] text-[#087553]" : negative ? "bg-[#faeae7] text-[#bc3c2c]" : "bg-[#eef0ec] text-[#555b52]"}`}>{signal.analystRating}{signal.analystCount ? ` · ${signal.analystCount}` : ""}</span>;
+}
+
 function Change({ value }: { value: number }) {
   const positive = value >= 0;
   return (
@@ -28,7 +80,7 @@ function Change({ value }: { value: number }) {
   );
 }
 
-function StockRows({ stocks, limit }: { stocks: StockSnapshot[]; limit: number }) {
+function StockRows({ stocks, limit, signals }: { stocks: StockSnapshot[]; limit: number; signals: Record<string, StockSignal> }) {
   return (
     <div className="divide-y divide-[#e4e6df]">
       {stocks.slice(0, limit).map((stock, index) => (
@@ -37,6 +89,7 @@ function StockRows({ stocks, limit }: { stocks: StockSnapshot[]; limit: number }
           <div className="min-w-0">
             <div className="flex items-baseline gap-2"><span className="font-mono text-sm font-bold text-[#232621]">{stock.symbol}</span><span className="truncate text-xs text-[#7a8076]">{stock.name}</span></div>
             <span className="mt-0.5 block font-mono text-[11px] text-[#555b52]">{currency(stock.price)}</span>
+            <div className="mt-2 flex flex-wrap gap-1.5"><OptionRatio signal={signals[stock.symbol]} /><AnalystRating signal={signals[stock.symbol]} /></div>
           </div>
           <Change value={stock.periodChange} />
         </Link>
@@ -53,27 +106,27 @@ function ExpandButton({ expanded, onClick, count }: { expanded: boolean; onClick
   );
 }
 
-function RankingCard({ title, label, stocks, expanded, onToggle }: { title: string; label: string; stocks: StockSnapshot[]; expanded: boolean; onToggle: () => void }) {
+function RankingCard({ title, label, stocks, expanded, onToggle, signals }: { title: string; label: string; stocks: StockSnapshot[]; expanded: boolean; onToggle: () => void; signals: Record<string, StockSignal> }) {
   return (
     <section className="rounded-2xl border border-[#dfe1da] bg-white/75 p-5 shadow-[0_15px_40px_rgba(31,35,29,0.04)]">
       <div className="mb-2 flex items-center justify-between border-b-2 border-[#262923] pb-3">
         <div><p className="text-[9px] font-bold uppercase tracking-[0.18em] text-[#e85d24]">{label}</p><h3 className="mt-1 text-xl font-semibold tracking-tight">{title}</h3></div>
         <span className="font-mono text-[10px] text-[#8b9087]">USA / {stocks.length}</span>
       </div>
-      <StockRows stocks={stocks} limit={expanded ? 20 : 3} />
+      <StockRows stocks={stocks} limit={expanded ? 20 : 3} signals={signals} />
       <ExpandButton expanded={expanded} onClick={onToggle} count={20} />
     </section>
   );
 }
 
-function SectorCard({ group, expanded, onToggle }: { group: SectorMovers; expanded: boolean; onToggle: () => void }) {
+function SectorCard({ group, expanded, onToggle, signals }: { group: SectorMovers; expanded: boolean; onToggle: () => void; signals: Record<string, StockSignal> }) {
   return (
     <section className="rounded-2xl border border-[#dfe1da] bg-white/65 p-4">
       <div className="flex items-center justify-between border-b border-[#d9dbd4] pb-3">
         <h3 className="text-sm font-bold tracking-tight text-[#292c27]">{group.sector}</h3>
         <span className="font-mono text-[9px] uppercase tracking-[0.12em] text-[#949a90]">Top moves</span>
       </div>
-      <StockRows stocks={group.stocks} limit={expanded ? group.stocks.length : 3} />
+      <StockRows stocks={group.stocks} limit={expanded ? group.stocks.length : 3} signals={signals} />
       <ExpandButton expanded={expanded} onClick={onToggle} count={group.stocks.length} />
     </section>
   );
@@ -84,6 +137,7 @@ function Watchlist({ initialQuotes }: { initialQuotes: StockSnapshot[] }) {
   const [quotes, setQuotes] = useState(initialQuotes);
   const [input, setInput] = useState("");
   const [editing, setEditing] = useState(false);
+  const signals = useStockSignals(quotes.map((quote) => quote.symbol));
 
   useEffect(() => {
     const stored = window.localStorage.getItem(storageKey);
@@ -139,15 +193,17 @@ function Watchlist({ initialQuotes }: { initialQuotes: StockSnapshot[] }) {
       </div>
 
       <div className="mt-3 overflow-x-auto">
-        <div className="min-w-[650px]">
-          <div className="grid grid-cols-[1.4fr_1fr_1fr_1fr_auto] gap-4 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[#949a90]"><span>Company</span><span>Price</span><span>Day move</span><span>Sector</span><span /></div>
+        <div className="min-w-[980px]">
+          <div className="grid grid-cols-[1.3fr_.7fr_.8fr_1fr_1fr_.8fr_auto] gap-4 px-3 py-2 font-mono text-[9px] uppercase tracking-[0.14em] text-[#949a90]"><span>Company</span><span>Price</span><span>Day move</span><span>Call / Put</span><span>Analyst</span><span>Sector</span><span /></div>
           <div className="divide-y divide-[#e5e7e1]">
             {quotes.map((quote) => (
-              <div key={quote.symbol} className="group relative grid grid-cols-[1.4fr_1fr_1fr_1fr_auto] items-center gap-4 rounded-xl px-3 py-3 transition hover:bg-[#f5f6f2]">
+              <div key={quote.symbol} className="group relative grid grid-cols-[1.3fr_.7fr_.8fr_1fr_1fr_.8fr_auto] items-center gap-4 rounded-xl px-3 py-3 transition hover:bg-[#f5f6f2]">
                 <Link href={`/stocks/${encodeURIComponent(quote.symbol)}`} aria-label={`View ${quote.symbol} chart and news`} className="absolute inset-0 z-10 rounded-xl" />
                 <div className="pointer-events-none relative z-20 min-w-0"><span className="font-mono text-sm font-bold group-hover:text-[#e85d24]">{quote.symbol}</span><span className="ml-2 truncate text-xs text-[#7a8076]">{quote.name}</span></div>
                 <span className="pointer-events-none relative z-20 font-mono text-sm font-semibold">{currency(quote.price)}</span>
                 <span className="pointer-events-none relative z-20"><Change value={quote.changePercent} /></span>
+                <span className="pointer-events-none relative z-20"><OptionRatio signal={signals[quote.symbol]} /></span>
+                <span className="pointer-events-none relative z-20"><AnalystRating signal={signals[quote.symbol]} /></span>
                 <span className="pointer-events-none relative z-20 truncate text-xs text-[#71776e]">{quote.sector}</span>
                 <button type="button" onClick={() => removeSymbol(quote.symbol)} aria-label={`Remove ${quote.symbol}`} className={`relative z-30 grid h-7 w-7 place-items-center rounded-full text-sm text-[#bd4435] transition hover:bg-[#faeae7] ${editing ? "visible opacity-100" : "invisible opacity-0"}`}>×</button>
               </div>
@@ -187,6 +243,12 @@ export default function StocksDashboard({ initialWatchlist, initialMovers, ipos 
   const [declinersExpanded, setDeclinersExpanded] = useState(false);
   const [expandedSectors, setExpandedSectors] = useState<string[]>([]);
   const periodLabel = period === "day" ? "Today's" : period === "month" ? "One-month" : "One-year";
+  const visibleSymbols = [
+    ...movers.gainers.slice(0, gainersExpanded ? 20 : 3),
+    ...movers.decliners.slice(0, declinersExpanded ? 20 : 3),
+    ...movers.sectors.flatMap((group) => group.stocks.slice(0, expandedSectors.includes(group.sector) ? group.stocks.length : 3)),
+  ].map((stock) => stock.symbol);
+  const signals = useStockSignals(visibleSymbols);
 
   async function changePeriod(next: StocksData["period"]) {
     if (next === period) return;
@@ -223,7 +285,7 @@ export default function StocksDashboard({ initialWatchlist, initialMovers, ipos 
       <div className="mx-auto max-w-[1500px] px-5 sm:px-8">
         <section className="flex flex-col gap-2 py-7 sm:flex-row sm:items-end sm:justify-between">
           <div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">US market desk</p><h1 className="mt-1 text-3xl font-semibold tracking-[-0.04em] text-[#1c1f1b]">Stocks & Watchlist</h1></div>
-          <p className="max-w-xl text-sm text-[#656b62]">Watchlist, movers, sectors, and new listings.</p>
+          <p className="max-w-xl text-sm text-[#656b62]">Watchlist, movers, sectors, option open-interest ratios, analyst consensus, and new listings.</p>
         </section>
 
         <Watchlist initialQuotes={initialWatchlist} />
@@ -236,15 +298,15 @@ export default function StocksDashboard({ initialWatchlist, initialMovers, ipos 
             </div>
           </div>
           <div className={`grid gap-6 transition lg:grid-cols-2 ${loading ? "animate-pulse opacity-50" : ""}`}>
-            <RankingCard title="Top Gainers" label="Leading the tape" stocks={movers.gainers} expanded={gainersExpanded} onToggle={() => setGainersExpanded((value) => !value)} />
-            <RankingCard title="Top Decliners" label="Under pressure" stocks={movers.decliners} expanded={declinersExpanded} onToggle={() => setDeclinersExpanded((value) => !value)} />
+            <RankingCard title="Top Gainers" label="Leading the tape" stocks={movers.gainers} expanded={gainersExpanded} onToggle={() => setGainersExpanded((value) => !value)} signals={signals} />
+            <RankingCard title="Top Decliners" label="Under pressure" stocks={movers.decliners} expanded={declinersExpanded} onToggle={() => setDeclinersExpanded((value) => !value)} signals={signals} />
           </div>
         </section>
 
         <section className="border-t border-[#d8dad3] py-12">
           <div className="mb-7"><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Inside the market</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">Sector Movers</h2><p className="mt-2 max-w-2xl text-sm text-[#777d74]">The three largest moves in each major US equity sector. Expand any sector for the full ranked list.</p></div>
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {movers.sectors.map((group) => <SectorCard key={group.sector} group={group} expanded={expandedSectors.includes(group.sector)} onToggle={() => toggleSector(group.sector)} />)}
+            {movers.sectors.map((group) => <SectorCard key={group.sector} group={group} expanded={expandedSectors.includes(group.sector)} onToggle={() => toggleSector(group.sector)} signals={signals} />)}
           </div>
         </section>
 
@@ -254,7 +316,7 @@ export default function StocksDashboard({ initialWatchlist, initialMovers, ipos 
         </section>
       </div>
 
-      <footer className="mt-6 bg-[#20231f] text-[#f4f5f1]"><div className="mx-auto flex max-w-[1500px] flex-col gap-5 px-5 py-9 sm:flex-row sm:items-center sm:justify-between sm:px-8"><div><p className="text-lg font-semibold">Raj Peswani&apos;s Tracker</p><p className="mt-1 text-xs text-[#9da39a]">Markets, sectors, and new listings.</p></div><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8e948b]">Market data is informational / Not investment advice</p></div></footer>
+      <footer className="mt-6 bg-[#20231f] text-[#f4f5f1]"><div className="mx-auto flex max-w-[1500px] flex-col gap-5 px-5 py-9 sm:flex-row sm:items-center sm:justify-between sm:px-8"><div><p className="text-lg font-semibold">Raj Peswani&apos;s Tracker</p><p className="mt-1 text-xs text-[#9da39a]">Options percentages use listed open interest; ratings show Nasdaq analyst consensus.</p></div><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#8e948b]">Market data is informational / Not investment advice</p></div></footer>
     </main>
   );
 }

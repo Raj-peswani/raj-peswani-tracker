@@ -43,6 +43,14 @@ export type StockSnapshot = {
   periodChange: number;
 };
 
+export type StockSignal = {
+  symbol: string;
+  callPercent: number | null;
+  putPercent: number | null;
+  analystRating: string | null;
+  analystCount: number | null;
+};
+
 export type SectorMovers = {
   sector: string;
   stocks: StockSnapshot[];
