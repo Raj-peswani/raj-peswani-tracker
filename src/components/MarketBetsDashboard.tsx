@@ -90,7 +90,10 @@ export default function MarketBetsDashboard({ data: initialData }: { data: Marke
     setRefreshing(true);
     try {
       const response = await fetch("/api/market-bets?refresh=1");
-      if (response.ok) setData(await response.json());
+      if (response.ok) {
+        const update = await response.json() as Pick<MarketBetsData, "countryMovers" | "updatedAt">;
+        setData((current) => ({ ...current, ...update }));
+      }
     } finally {
       setRefreshing(false);
     }

@@ -1,7 +1,5 @@
-import type { NextRequest } from "next/server";
-import { getMarketBetsData } from "@/lib/market-bets";
+import { getLiveCountryMovers } from "@/lib/market-live";
 
-export async function GET(request: NextRequest) {
-  const forceMarket = request.nextUrl.searchParams.get("refresh") === "1";
-  return Response.json(await getMarketBetsData(forceMarket));
+export async function GET() {
+  return Response.json(await getLiveCountryMovers());
 }
