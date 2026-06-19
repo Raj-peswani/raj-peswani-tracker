@@ -17,7 +17,12 @@ function percent(value: number) {
 }
 
 function saveSymbols(symbols: string[]) {
-  window.localStorage.setItem(storageKey, JSON.stringify(symbols));
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify({ version: 1, symbols }));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function useStockSignals(symbols: string[]) {
@@ -137,18 +142,31 @@ function Watchlist({ initialQuotes }: { initialQuotes: StockSnapshot[] }) {
   const [quotes, setQuotes] = useState(initialQuotes);
   const [input, setInput] = useState("");
   const [editing, setEditing] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"saved" | "saving" | "error">("saved");
   const signals = useStockSignals(quotes.map((quote) => quote.symbol));
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(storageKey);
-    if (!stored) return;
     try {
-      const parsed = JSON.parse(stored) as string[];
-      if (Array.isArray(parsed) && parsed.length) queueMicrotask(() => setSymbols(parsed.slice(0, 30)));
+      const stored = window.localStorage.getItem(storageKey);
+      if (stored !== null) {
+        const parsed = JSON.parse(stored) as string[] | { symbols?: string[] };
+        const savedSymbols = Array.isArray(parsed) ? parsed : parsed.symbols;
+        if (Array.isArray(savedSymbols)) setSymbols(savedSymbols.slice(0, 30));
+      }
     } catch {
-      window.localStorage.removeItem(storageKey);
+      setSaveStatus("error");
+    } finally {
+      queueMicrotask(() => setHydrated(true));
     }
   }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    setSaveStatus("saving");
+    const saved = saveSymbols(symbols);
+    queueMicrotask(() => setSaveStatus(saved ? "saved" : "error"));
+  }, [hydrated, symbols]);
 
   useEffect(() => {
     if (!symbols.length) {
@@ -169,25 +187,24 @@ function Watchlist({ initialQuotes }: { initialQuotes: StockSnapshot[] }) {
     if (!symbol || symbols.includes(symbol) || symbols.length >= 30) return;
     const next = [...symbols, symbol];
     setSymbols(next);
-    saveSymbols(next);
     setInput("");
   }
 
   function removeSymbol(symbol: string) {
     const next = symbols.filter((item) => item !== symbol);
     setSymbols(next);
-    saveSymbols(next);
   }
 
   return (
     <section className="rounded-3xl border border-[#daddd4] bg-white/75 p-5 shadow-[0_24px_60px_rgba(31,35,29,0.06)] sm:p-7">
       <div className="flex flex-col gap-4 border-b border-[#dfe1da] pb-5 sm:flex-row sm:items-end sm:justify-between">
-        <div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Your list</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Watchlist</h2><p className="mt-1 text-sm text-[#747a71]">Saved on this device. Add up to 30 US tickers.</p></div>
+        <div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Your list</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Watchlist</h2><p className={`mt-1 text-sm ${saveStatus === "error" ? "text-[#bc3c2c]" : "text-[#747a71]"}`}>{saveStatus === "saving" ? "Saving watchlist…" : saveStatus === "error" ? "Could not save on this browser. Check storage permissions." : "Saved on this device. Add up to 30 US tickers."}</p></div>
         <div className="flex items-center gap-2">
           <form onSubmit={addSymbol} className="flex items-center overflow-hidden rounded-full border border-[#d5d8d0] bg-white focus-within:border-[#8c9188]">
             <input value={input} onChange={(event) => setInput(event.target.value.toUpperCase())} placeholder="Ticker e.g. PLTR" aria-label="Stock ticker" className="w-36 bg-transparent px-4 py-2.5 font-mono text-xs uppercase outline-none placeholder:text-[#a4a9a0]" />
             <button type="submit" className="mr-1 grid h-8 w-8 place-items-center rounded-full bg-[#20231f] text-lg text-white transition hover:bg-[#e85d24]" aria-label="Add stock">+</button>
           </form>
+          <button type="button" onClick={() => setSaveStatus(saveSymbols(symbols) ? "saved" : "error")} className="rounded-full border border-[#d5d8d0] bg-white px-4 py-2.5 text-xs font-semibold text-[#4d534a] transition hover:border-[#9fa49b]">Save</button>
           <button type="button" onClick={() => setEditing((value) => !value)} className={`rounded-full border px-4 py-2.5 text-xs font-semibold transition ${editing ? "border-[#20231f] bg-[#20231f] text-white" : "border-[#d5d8d0] bg-white text-[#4d534a] hover:border-[#9fa49b]"}`}>{editing ? "Done" : "Edit"}</button>
         </div>
       </div>

@@ -163,6 +163,22 @@ export type QuantAnalysis = {
     currentRatio: number | null;
   };
   options: StockSignal;
+  forecasting: {
+    sharpeRatio: number;
+    riskFreeRate: number;
+    simulations: number;
+    day20: { median: number; low: number; high: number; probabilityGain: number };
+    day60: { median: number; low: number; high: number; probabilityGain: number };
+  };
+  pattern: {
+    detected: boolean;
+    averageSwing: number;
+    averageCycleDays: number;
+    consistency: number;
+    phase: string;
+    nextReference: number | null;
+    pivots: Array<{ date: string; type: "high" | "low"; price: number }>;
+  };
   scores: {
     trend: number;
     momentum: number;

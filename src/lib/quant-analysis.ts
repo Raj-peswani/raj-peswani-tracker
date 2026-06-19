@@ -65,6 +65,92 @@ function scoreLabel(score: number): QuantAnalysis["setupLabel"] {
   return "Caution";
 }
 
+function seededRandom(seed: number) {
+  let state = seed >>> 0;
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0;
+    return state / 4294967296;
+  };
+}
+
+function normalSample(random: () => number) {
+  const first = Math.max(random(), Number.EPSILON);
+  const second = random();
+  return Math.sqrt(-2 * Math.log(first)) * Math.cos(2 * Math.PI * second);
+}
+
+function percentile(sorted: number[], fraction: number) {
+  return sorted[Math.min(sorted.length - 1, Math.max(0, Math.floor((sorted.length - 1) * fraction)))] ?? 0;
+}
+
+function monteCarloForecast(symbol: string, price: number, dailyReturns: number[], simulations = 5000) {
+  const seed = symbol.split("").reduce((sum, character) => sum + character.charCodeAt(0), 2026);
+  const random = seededRandom(seed);
+  const dailyDrift = Math.max(-0.003, Math.min(0.003, average(dailyReturns.slice(-120))));
+  const dailyVolatility = Math.max(0.0001, standardDeviation(dailyReturns.slice(-120)));
+  const day20Prices: number[] = [];
+  const day60Prices: number[] = [];
+  for (let simulation = 0; simulation < simulations; simulation += 1) {
+    let simulatedPrice = price;
+    for (let day = 1; day <= 60; day += 1) {
+      simulatedPrice *= Math.exp((dailyDrift - (dailyVolatility ** 2) / 2) + (dailyVolatility * normalSample(random)));
+      if (day === 20) day20Prices.push(simulatedPrice);
+    }
+    day60Prices.push(simulatedPrice);
+  }
+  day20Prices.sort((first, second) => first - second);
+  day60Prices.sort((first, second) => first - second);
+  const summarize = (prices: number[]) => ({
+    median: percentile(prices, 0.5),
+    low: percentile(prices, 0.1),
+    high: percentile(prices, 0.9),
+    probabilityGain: (prices.filter((forecastPrice) => forecastPrice > price).length / prices.length) * 100,
+  });
+  return { simulations, day20: summarize(day20Prices), day60: summarize(day60Prices) };
+}
+
+function detectSwingPattern(bars: PriceBar[]): QuantAnalysis["pattern"] {
+  const recentBars = bars.slice(-180);
+  const rawPivots: Array<{ timestamp: number; type: "high" | "low"; price: number }> = [];
+  const window = 3;
+  for (let index = window; index < recentBars.length - window; index += 1) {
+    const comparison = recentBars.slice(index - window, index + window + 1);
+    const bar = recentBars[index];
+    if (bar.high === Math.max(...comparison.map((candidate) => candidate.high))) rawPivots.push({ timestamp: bar.timestamp, type: "high", price: bar.high });
+    if (bar.low === Math.min(...comparison.map((candidate) => candidate.low))) rawPivots.push({ timestamp: bar.timestamp, type: "low", price: bar.low });
+  }
+  rawPivots.sort((first, second) => first.timestamp - second.timestamp);
+  const alternating: typeof rawPivots = [];
+  for (const pivot of rawPivots) {
+    const previous = alternating.at(-1);
+    if (!previous || previous.type !== pivot.type) {
+      alternating.push(pivot);
+    } else if ((pivot.type === "high" && pivot.price > previous.price) || (pivot.type === "low" && pivot.price < previous.price)) {
+      alternating[alternating.length - 1] = pivot;
+    }
+  }
+  const pivots = alternating.slice(-8);
+  const swings = pivots.slice(1).map((pivot, index) => Math.abs((pivot.price - pivots[index].price) / pivots[index].price) * 100);
+  const cycles = pivots.slice(1).map((pivot, index) => Math.abs(pivot.timestamp - pivots[index].timestamp) / 86400);
+  const averageSwing = average(swings);
+  const averageCycleDays = average(cycles);
+  const variation = averageSwing ? standardDeviation(swings) / averageSwing : 1;
+  const consistency = Math.max(0, Math.min(100, 100 - (variation * 100)));
+  const latestPivot = pivots.at(-1);
+  const currentPrice = bars.at(-1)?.close ?? 0;
+  const phase = !latestPivot ? "No stable swing cycle detected" : latestPivot.type === "low" && currentPrice > latestPivot.price ? "Rebounding from a detected swing low" : latestPivot.type === "high" && currentPrice < latestPivot.price ? "Pulling back from a detected swing high" : `Testing the latest swing ${latestPivot.type}`;
+  const nextReference = !latestPivot || !averageSwing ? null : latestPivot.type === "low" ? latestPivot.price * (1 + averageSwing / 100) : latestPivot.price * (1 - averageSwing / 100);
+  return {
+    detected: pivots.length >= 4 && averageSwing >= 6 && consistency >= 35,
+    averageSwing,
+    averageCycleDays,
+    consistency,
+    phase,
+    nextReference,
+    pivots: pivots.map((pivot) => ({ date: new Date(pivot.timestamp * 1000).toISOString().slice(0, 10), type: pivot.type, price: pivot.price })),
+  };
+}
+
 export async function getQuantAnalysis(symbolInput: string): Promise<QuantAnalysis | null> {
   const symbol = symbolInput.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "").slice(0, 12);
   if (!symbol) return null;
@@ -111,6 +197,12 @@ export async function getQuantAnalysis(symbolInput: string): Promise<QuantAnalys
     const atr14 = average(trueRanges.slice(-14));
     const dailyReturns = closeValues.slice(1).map((value, index) => Math.log(value / closeValues[index]));
     const volatility = standardDeviation(dailyReturns.slice(-60)) * Math.sqrt(252) * 100;
+    const riskFreeRate = 4.3;
+    const annualizedReturn = average(dailyReturns) * 252 * 100;
+    const annualizedVolatility = standardDeviation(dailyReturns) * Math.sqrt(252) * 100;
+    const sharpeRatio = annualizedVolatility ? (annualizedReturn - riskFreeRate) / annualizedVolatility : 0;
+    const forecast = monteCarloForecast(symbol, price, dailyReturns);
+    const pattern = detectSwingPattern(bars);
     const return20Day = closeValues.length > 20 ? ((price - closeValues.at(-21)!) / closeValues.at(-21)!) * 100 : 0;
     const support = Math.min(...bars.slice(-20).map((bar) => bar.low));
     const resistance = Math.max(...bars.slice(-60).map((bar) => bar.high));
@@ -159,6 +251,8 @@ export async function getQuantAnalysis(symbolInput: string): Promise<QuantAnalys
       technical: { sma20, sma50, sma200, rsi14, macd, signal, atr14, volatility, return20Day, support, resistance, stopReference, twoRTarget },
       fundamentals: { sector: summary?.Sector?.value ?? "N/A", industry: summary?.Industry?.value ?? "N/A", oneYearTarget, targetUpside, revenueGrowth, netIncomeGrowth, profitMargin, currentRatio },
       options,
+      forecasting: { sharpeRatio, riskFreeRate, simulations: forecast.simulations, day20: forecast.day20, day60: forecast.day60 },
+      pattern,
       scores: { trend, momentum, risk, fundamentals },
       signals,
       updatedAt: new Date().toISOString(),
