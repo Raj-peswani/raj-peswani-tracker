@@ -196,7 +196,7 @@ function Watchlist({ initialQuotes }: { initialQuotes: StockSnapshot[] }) {
   }
 
   return (
-    <section className="rounded-3xl border border-[#daddd4] bg-white/75 p-5 shadow-[0_24px_60px_rgba(31,35,29,0.06)] sm:p-7">
+    <section className="relative isolate rounded-3xl border border-[#daddd4] bg-white/75 p-5 shadow-[0_24px_60px_rgba(31,35,29,0.06)] sm:p-7">
       <div className="flex flex-col gap-4 border-b border-[#dfe1da] pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Your list</p><h2 className="mt-1 text-3xl font-semibold tracking-[-0.04em]">Watchlist</h2><p className={`mt-1 text-sm ${saveStatus === "error" ? "text-[#bc3c2c]" : "text-[#747a71]"}`}>{saveStatus === "saving" ? "Saving watchlist…" : saveStatus === "error" ? "Could not save on this browser. Check storage permissions." : "Saved on this device. Add up to 30 US tickers."}</p></div>
         <div className="flex items-center gap-2">
@@ -287,7 +287,7 @@ export default function StocksDashboard({ initialWatchlist, initialMovers, ipos 
 
   return (
     <main>
-      <header className="sticky top-0 z-20 border-b border-[#dcddd7] bg-[#f7f8f4]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 isolate border-b border-[#dcddd7] bg-[#f7f8f4]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-3 sm:px-8">
           <Link href="/" className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#20231f] text-xs font-bold text-white">RP</span><span className="hidden text-sm font-semibold tracking-tight text-[#292c27] sm:block">Raj Peswani&apos;s Tracker</span></Link>
           <nav className="flex items-center gap-1 rounded-full border border-[#d9dbd4] bg-white p-1 text-[10px] font-semibold sm:gap-2 sm:text-xs">

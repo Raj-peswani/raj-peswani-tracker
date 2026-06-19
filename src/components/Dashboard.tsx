@@ -92,7 +92,7 @@ export default function Dashboard({ data }: { data: DashboardData }) {
 
   return (
     <main>
-      <header className="sticky top-0 z-20 border-b border-[#dcddd7] bg-[#f7f8f4]/90 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 isolate border-b border-[#dcddd7] bg-[#f7f8f4]/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-3 sm:px-8">
           <a href="#top" className="flex items-center gap-3">
             <span className="grid h-8 w-8 place-items-center rounded-full bg-[#20231f] text-xs font-bold text-white">RP</span>
