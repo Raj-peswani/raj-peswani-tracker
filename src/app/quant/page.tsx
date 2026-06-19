@@ -9,8 +9,9 @@ export const metadata: Metadata = {
   description: "Searchable technical, options, analyst, risk, and fundamental analysis for swing-trade research.",
 };
 
-export default async function QuantPage() {
-  const analysis = await getQuantAnalysis("AAPL");
+export default async function QuantPage({ searchParams }: { searchParams: Promise<{ symbol?: string }> }) {
+  const { symbol } = await searchParams;
+  const analysis = await getQuantAnalysis(symbol ?? "AAPL");
   if (!analysis) throw new Error("Default quant analysis is temporarily unavailable.");
   return <QuantDashboard initialAnalysis={analysis} />;
 }

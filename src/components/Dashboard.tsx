@@ -98,11 +98,12 @@ export default function Dashboard({ data }: { data: DashboardData }) {
             <span className="grid h-8 w-8 place-items-center rounded-full bg-[#20231f] text-xs font-bold text-white">RP</span>
             <span className="hidden text-sm font-semibold tracking-tight text-[#292c27] lg:block">Raj Peswani&apos;s Tracker</span>
           </a>
-          <nav className="flex items-center gap-1 rounded-full border border-[#d9dbd4] bg-white p-1 text-[10px] font-semibold sm:gap-2 sm:text-xs">
+          <nav className="flex items-center gap-1 overflow-x-auto rounded-full border border-[#d9dbd4] bg-white p-1 text-[10px] font-semibold sm:gap-2 sm:text-xs">
             <span className="rounded-full bg-[#20231f] px-2.5 py-2 text-white sm:px-4">News</span>
             <Link className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/stocks">Stocks</Link>
-            <Link className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/market-bets">Market Bets</Link>
+            <Link className="whitespace-nowrap rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/market-bets">Market Bets</Link>
             <Link className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/quant">Quant</Link>
+            <Link className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/lookouts">Lookouts</Link>
           </nav>
           <div className="hidden sm:block"><RefreshButton /></div>
         </div>

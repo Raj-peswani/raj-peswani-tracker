@@ -215,3 +215,44 @@ export type StockDetailData = {
   points: StockChartPoint[];
   news: Story[];
 };
+
+export type LookoutCandidate = {
+  rank: number;
+  symbol: string;
+  name: string;
+  sector: string;
+  price: number;
+  researchScore: number;
+  classification: "Priority research" | "Constructive watch" | "Monitor";
+  holdingPeriod: string;
+  expectedProfitPercent: number;
+  scenarioTarget: number;
+  probabilitySuccess: number;
+  stopReference: number;
+  downsideToStop: number;
+  performance: { day: number; month: number; year: number };
+  ratios: {
+    sharpeRatio: number;
+    rsi14: number;
+    volatility: number;
+    revenueGrowth: number | null;
+    profitMargin: number | null;
+    currentRatio: number | null;
+    targetUpside: number | null;
+    callPercent: number | null;
+    putPercent: number | null;
+    analystRating: string | null;
+  };
+  pattern: QuantAnalysis["pattern"];
+  reasoning: string[];
+  risks: string[];
+  news: Story[];
+};
+
+export type LookoutsData = {
+  generatedAt: string;
+  nextRefreshAt: string;
+  scannedStocks: number;
+  methodology: string[];
+  candidates: LookoutCandidate[];
+};
