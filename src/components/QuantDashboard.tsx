@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
+import type { StockSearchResult } from "@/lib/stock-search";
 import type { QuantAnalysis } from "@/types";
 
 function money(value: number) {
@@ -31,22 +32,66 @@ function ForecastCard({ label, currentPrice, forecast }: { label: string; curren
 export default function QuantDashboard({ initialAnalysis }: { initialAnalysis: QuantAnalysis }) {
   const [analysis, setAnalysis] = useState(initialAnalysis);
   const [query, setQuery] = useState(initialAnalysis.symbol);
+  const [selectedSymbol, setSelectedSymbol] = useState(initialAnalysis.symbol);
+  const [suggestions, setSuggestions] = useState<StockSearchResult[]>([]);
+  const [suggestionsOpen, setSuggestionsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    const searchQuery = query.trim();
+    if (selectedSymbol || searchQuery.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      fetch(`/api/stock-search?q=${encodeURIComponent(searchQuery)}`, { signal: controller.signal })
+        .then((response) => response.ok ? response.json() : { results: [] })
+        .then((data: { results?: StockSearchResult[] }) => {
+          setSuggestions(data.results ?? []);
+          setSuggestionsOpen(true);
+        })
+        .catch(() => undefined);
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, selectedSymbol]);
+
+  function chooseSuggestion(result: StockSearchResult) {
+    setQuery(result.name);
+    setSelectedSymbol(result.symbol);
+    setSuggestionsOpen(false);
+  }
+
   async function runAnalysis(event: FormEvent) {
     event.preventDefault();
-    const symbol = query.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "");
-    if (!symbol) return;
     setLoading(true);
     setError("");
     try {
+      let symbol = selectedSymbol;
+      if (!symbol) {
+        const tickerCandidate = query.trim().toUpperCase();
+        const searchResponse = await fetch(`/api/stock-search?q=${encodeURIComponent(query.trim())}`);
+        if (!searchResponse.ok) throw new Error("Search unavailable");
+        const searchData = await searchResponse.json() as { results?: StockSearchResult[] };
+        const results = searchData.results ?? [];
+        symbol = results.find((result) => result.symbol === tickerCandidate)?.symbol
+          ?? results[0]?.symbol
+          ?? (/^[A-Z0-9.-]{1,12}$/.test(tickerCandidate) ? tickerCandidate : "");
+      }
+      if (!symbol) throw new Error("Company not found");
       const response = await fetch(`/api/quant?symbol=${encodeURIComponent(symbol)}`);
       if (!response.ok) throw new Error("Ticker not found");
       const data = await response.json();
       setAnalysis(data.analysis);
+      setQuery(data.analysis.name);
+      setSelectedSymbol(data.analysis.symbol);
+      setSuggestionsOpen(false);
     } catch {
-      setError("Analysis is unavailable for that ticker. Check the symbol and try again.");
+      setError("Analysis is unavailable for that company or ticker. Check the search and try again.");
     } finally {
       setLoading(false);
     }
@@ -58,7 +103,7 @@ export default function QuantDashboard({ initialAnalysis }: { initialAnalysis: Q
       <header className="sticky top-0 z-50 isolate border-b border-[#dcddd7] bg-[#f7f8f4]/90 backdrop-blur-xl"><div className="mx-auto flex max-w-[1500px] items-center justify-between px-5 py-3 sm:px-8"><Link href="/" className="flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#20231f] text-xs font-bold text-white">RP</span><span className="hidden text-sm font-semibold tracking-tight sm:block">Raj Peswani&apos;s Tracker</span></Link><nav className="flex items-center gap-1 rounded-full border border-[#d9dbd4] bg-white p-1 text-[10px] font-semibold sm:text-xs"><Link href="/" className="rounded-full px-2.5 py-2 text-[#666c63] sm:px-4">News</Link><Link href="/stocks" className="rounded-full px-2.5 py-2 text-[#666c63] sm:px-4">Stocks</Link><Link href="/market-bets" className="rounded-full px-2.5 py-2 text-[#666c63] sm:px-4">Market Bets</Link><span className="rounded-full bg-[#20231f] px-2.5 py-2 text-white sm:px-4">Quant</span></nav><span className="hidden font-mono text-[9px] uppercase tracking-[0.14em] text-[#858b81] md:block">Swing lab</span></div></header>
 
       <div className="mx-auto max-w-[1500px] px-5 sm:px-8">
-        <section className="py-8"><div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Technical + fundamental engine</p><h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em]">Quant Swing Lab</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6f756c]">A transparent setup score for research—not an order recommendation. Confirm catalysts, liquidity, and your own risk tolerance before trading.</p></div><form onSubmit={runAnalysis} className="flex w-full max-w-md items-center overflow-hidden rounded-full border border-[#cfd2ca] bg-white focus-within:border-[#8c9188]"><input value={query} onChange={(event) => setQuery(event.target.value.toUpperCase())} aria-label="Quant analysis ticker" placeholder="Ticker e.g. NVDA" className="min-w-0 flex-1 bg-transparent px-5 py-3 font-mono text-sm uppercase outline-none" /><button type="submit" disabled={loading} className="m-1 rounded-full bg-[#20231f] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#e85d24] disabled:opacity-50">{loading ? "Running…" : "Analyze"}</button></form></div>{error && <p className="mt-4 text-sm text-[#bc3c2c]">{error}</p>}</section>
+        <section className="py-8"><div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#e85d24]">Technical + fundamental engine</p><h1 className="mt-1 text-4xl font-semibold tracking-[-0.05em]">Quant Swing Lab</h1><p className="mt-2 max-w-2xl text-sm leading-relaxed text-[#6f756c]">A transparent setup score for research—not an order recommendation. Confirm catalysts, liquidity, and your own risk tolerance before trading.</p></div><form onSubmit={runAnalysis} className="relative w-full max-w-md"><div className="flex items-center overflow-hidden rounded-full border border-[#cfd2ca] bg-white focus-within:border-[#8c9188] focus-within:ring-4 focus-within:ring-[#e85d24]/10"><span className="pl-4 text-[#858b82]" aria-hidden="true">⌕</span><input value={query} onChange={(event) => { setQuery(event.target.value); setSelectedSymbol(""); }} onFocus={() => suggestions.length > 0 && setSuggestionsOpen(true)} aria-label="Search a company or ticker for quant analysis" placeholder="Search Apple, CoreWeave, NVDA…" autoComplete="off" className="min-w-0 flex-1 bg-transparent px-3 py-3 text-sm outline-none placeholder:text-[#9ba097]" /><button type="submit" disabled={loading} className="m-1 rounded-full bg-[#20231f] px-5 py-2.5 text-xs font-semibold text-white hover:bg-[#e85d24] disabled:opacity-50">{loading ? "Running…" : "Analyze"}</button></div>{suggestionsOpen && suggestions.length > 0 && <div className="absolute left-0 right-0 top-[calc(100%+8px)] z-40 overflow-hidden rounded-2xl border border-[#d5d8d0] bg-white p-1.5 shadow-[0_18px_50px_rgba(31,35,29,0.18)]">{suggestions.map((result) => <button key={result.symbol} type="button" onClick={() => chooseSuggestion(result)} className="flex w-full items-center justify-between gap-4 rounded-xl px-3 py-2.5 text-left transition hover:bg-[#f2f4ef]"><span className="min-w-0"><strong className="block truncate text-sm">{result.name}</strong><span className="mt-0.5 block truncate text-[10px] text-[#858b82]">{result.exchange}</span></span><span className="shrink-0 rounded-full bg-[#eef0ec] px-2.5 py-1 font-mono text-[10px] font-bold">{result.symbol}</span></button>)}</div>}<p className="mt-2 px-3 text-[10px] text-[#858b82]">Search by company name or ticker symbol</p></form></div>{error && <p className="mt-4 text-sm text-[#bc3c2c]">{error}</p>}</section>
 
         <section className="grid gap-6 border-t border-[#d8dad3] py-9 lg:grid-cols-[1.25fr_.75fr]"><div className="rounded-3xl border border-[#daddd4] bg-white/75 p-6 sm:p-8"><div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between"><div><div className="flex items-baseline gap-3"><h2 className="font-mono text-4xl font-bold">{analysis.symbol}</h2><span className="text-sm text-[#747a71]">{analysis.name}</span></div><p className="mt-4 font-mono text-3xl font-semibold">{money(analysis.price)}</p><p className={`mt-1 font-mono text-sm ${analysis.changePercent >= 0 ? "text-[#087553]" : "text-[#bc3c2c]"}`}>{percent(analysis.changePercent)} today</p></div><div className="text-center sm:text-right"><p className={`font-mono text-7xl font-semibold tracking-[-0.08em] ${scoreTone}`}>{analysis.setupScore}</p><p className="mt-1 text-lg font-semibold">{analysis.setupLabel}</p><p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#92978e]">Composite / 100</p></div></div><div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"><ScoreCard label="Trend" score={analysis.scores.trend} /><ScoreCard label="Momentum" score={analysis.scores.momentum} /><ScoreCard label="Risk quality" score={analysis.scores.risk} /><ScoreCard label="Fundamentals" score={analysis.scores.fundamentals} /></div></div>
 
