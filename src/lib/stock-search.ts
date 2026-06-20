@@ -28,7 +28,7 @@ export async function searchStocks(queryInput: string): Promise<StockSearchResul
     if (!response.ok) return local.slice(0, 8);
     const payload = await response.json() as { quotes?: Array<Record<string, unknown>> };
     const remote = (payload.quotes ?? [])
-      .filter((quote) => quote.quoteType === "EQUITY" && typeof quote.symbol === "string")
+      .filter((quote) => ["EQUITY", "ETF"].includes(String(quote.quoteType)) && typeof quote.symbol === "string")
       .map((quote) => ({
         symbol: String(quote.symbol).toUpperCase(),
         name: String(quote.longname || quote.shortname || quote.symbol),

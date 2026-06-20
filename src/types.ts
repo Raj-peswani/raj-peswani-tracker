@@ -256,3 +256,38 @@ export type LookoutsData = {
   methodology: string[];
   candidates: LookoutCandidate[];
 };
+
+export type IndexHolding = {
+  symbol: string;
+  weight: number;
+};
+
+export type IndexBacktestMetrics = {
+  totalReturn: number;
+  annualizedReturn: number;
+  annualizedVolatility: number;
+  sharpeRatio: number;
+  maxDrawdown: number;
+};
+
+export type IndexBacktestResult = {
+  period: "1y" | "3y" | "5y";
+  benchmark: "^GSPC";
+  methodology: string;
+  riskFreeRate: number;
+  requestedSymbols: string[];
+  includedSymbols: string[];
+  omittedSymbols: string[];
+  startDate: string;
+  endDate: string;
+  portfolio: IndexBacktestMetrics;
+  sp500: IndexBacktestMetrics;
+  relative: {
+    outperformance: number;
+    beta: number;
+    correlation: number;
+    trackingError: number;
+    dailyWinRate: number;
+  };
+  series: Array<{ date: string; portfolio: number; sp500: number }>;
+};
