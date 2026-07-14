@@ -296,6 +296,7 @@ export default function StocksDashboard({ initialWatchlist, initialMovers, ipos 
             <Link href="/market-bets" className="whitespace-nowrap rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4">Market Bets</Link>
             <Link href="/quant" className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4">Quant</Link>
             <Link href="/lookouts" className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4">Lookouts</Link>
+            <Link href="/strong-buys" className="whitespace-nowrap rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4">Strong Buys</Link>
           </nav>
           <span className="hidden font-mono text-[9px] uppercase tracking-[0.14em] text-[#858b81] md:block">US market desk</span>
         </div>

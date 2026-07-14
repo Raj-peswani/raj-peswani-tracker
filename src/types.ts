@@ -243,6 +243,22 @@ export type LookoutCandidate = {
     putPercent: number | null;
     analystRating: string | null;
   };
+  reportFeedback: {
+    annualReportScore: number;
+    balanceSheetScore: number;
+    buyMetricsScore: number;
+    annualReportNotes: string[];
+    balanceSheetNotes: string[];
+    metrics: {
+      revenueGrowth: number | null;
+      netIncomeGrowth: number | null;
+      profitMargin: number | null;
+      currentRatio: number | null;
+      debtToEquity: number | null;
+      cashToDebt: number | null;
+      equityGrowth: number | null;
+    };
+  };
   pattern: QuantAnalysis["pattern"];
   reasoning: string[];
   risks: string[];
@@ -255,6 +271,28 @@ export type LookoutsData = {
   scannedStocks: number;
   methodology: string[];
   candidates: LookoutCandidate[];
+};
+
+export type StrongBuyStock = {
+  symbol: string;
+  name: string;
+  sector: string;
+  price: number;
+  changePercent: number;
+  analystRating: string;
+  analystCount: number | null;
+  callPercent: number | null;
+  putPercent: number | null;
+  setupScore: number;
+  reportScore: number;
+  targetUpside: number | null;
+  reasons: string[];
+};
+
+export type StrongBuysData = {
+  generatedAt: string;
+  scannedStocks: number;
+  stocks: StrongBuyStock[];
 };
 
 export type IndexHolding = {

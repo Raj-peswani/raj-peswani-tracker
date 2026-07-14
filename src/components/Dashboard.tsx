@@ -104,6 +104,7 @@ export default function Dashboard({ data }: { data: DashboardData }) {
             <Link className="whitespace-nowrap rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/market-bets">Market Bets</Link>
             <Link className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/quant">Quant</Link>
             <Link className="rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/lookouts">Lookouts</Link>
+            <Link className="whitespace-nowrap rounded-full px-2.5 py-2 text-[#666c63] transition hover:text-[#e85d24] sm:px-4" href="/strong-buys">Strong Buys</Link>
           </nav>
           <div className="hidden sm:block"><RefreshButton /></div>
         </div>

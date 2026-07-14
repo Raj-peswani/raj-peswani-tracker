@@ -59,8 +59,8 @@ async function getStockSignal(symbol: string): Promise<StockSignal> {
   return { symbol, ...analyst, ...options };
 }
 
-export async function getStockSignals(symbolInputs: string[]) {
-  const symbols = [...new Set(symbolInputs.map((symbol) => symbol.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "")).filter(Boolean))].slice(0, 12);
+export async function getStockSignals(symbolInputs: string[], limit = 12) {
+  const symbols = [...new Set(symbolInputs.map((symbol) => symbol.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, "")).filter(Boolean))].slice(0, limit);
   const signals: StockSignal[] = [];
   for (let index = 0; index < symbols.length; index += 4) {
     signals.push(...await Promise.all(symbols.slice(index, index + 4).map(getStockSignal)));

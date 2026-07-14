@@ -1,4 +1,5 @@
 import { unstable_cache } from "next/cache";
+import { getFinancialFeedback, type FinancialFeedback } from "@/lib/financial-feedback";
 import { getQuantAnalysis } from "@/lib/quant-analysis";
 import { getStockDetail } from "@/lib/stock-detail";
 import { stockUniverse } from "@/lib/stock-universe";
@@ -21,30 +22,33 @@ function screeningScore(day: number, month: number, year: number) {
   return dayScore * 0.2 + monthScore * 0.5 + yearScore * 0.3 - stabilityPenalty;
 }
 
-function candidateScore(analysis: QuantAnalysis, screenScore: number) {
+function candidateScore(analysis: QuantAnalysis, screenScore: number, feedback: FinancialFeedback) {
   const forecastScore = analysis.forecasting.day60.probabilityGain;
   const sharpeScore = clamp(50 + analysis.forecasting.sharpeRatio * 18, 0, 100);
   const optionsScore = analysis.options.callPercent ?? 50;
+  const financialScore = feedback.buyMetricsScore;
   return Math.round(clamp(
-    analysis.setupScore * 0.42 + forecastScore * 0.24 + sharpeScore * 0.14 + optionsScore * 0.08 + screenScore * 0.12,
+    analysis.setupScore * 0.34 + forecastScore * 0.2 + sharpeScore * 0.12 + optionsScore * 0.07 + screenScore * 0.1 + financialScore * 0.17,
     0,
     100,
   ));
 }
 
-function buildReasoning(analysis: QuantAnalysis, month: number, year: number) {
+function buildReasoning(analysis: QuantAnalysis, month: number, year: number, feedback: FinancialFeedback) {
   const reasons = analysis.signals.filter((signal) => signal.tone === "positive").map((signal) => signal.detail);
   if (month > 0) reasons.push(`One-month momentum is positive at ${month.toFixed(1)}%.`);
   if (year > 0) reasons.push(`One-year price trend is positive at ${year.toFixed(1)}%.`);
   if (analysis.forecasting.day60.probabilityGain >= 55) reasons.push(`The 60-day Monte Carlo model shows ${analysis.forecasting.day60.probabilityGain.toFixed(0)}% gain scenarios.`);
   if (analysis.pattern.detected) reasons.push(`A recurring swing structure was detected with ${analysis.pattern.consistency.toFixed(0)}% consistency.`);
+  if (feedback.buyMetricsScore >= 65) reasons.push(`Annual report and balance sheet checks combine for a ${feedback.buyMetricsScore}/100 buy-metrics score.`);
   return [...new Set(reasons)].slice(0, 6);
 }
 
-function buildRisks(analysis: QuantAnalysis, month: number) {
+function buildRisks(analysis: QuantAnalysis, month: number, feedback: FinancialFeedback) {
   const risks = analysis.signals.filter((signal) => signal.tone === "negative").map((signal) => signal.detail);
   if (analysis.technical.volatility > 55) risks.push(`Annualized volatility is elevated at ${analysis.technical.volatility.toFixed(1)}%.`);
   if (analysis.fundamentals.profitMargin !== null && analysis.fundamentals.profitMargin < 0) risks.push(`Profit margin is negative at ${analysis.fundamentals.profitMargin.toFixed(1)}%.`);
+  if (feedback.balanceSheetScore < 45) risks.push(`Balance sheet feedback is weak at ${feedback.balanceSheetScore}/100; verify debt, liquidity, and cash coverage.`);
   if (month > 25) risks.push("The recent move is extended and may be vulnerable to mean reversion.");
   if (!risks.length) risks.push("Unexpected news, earnings, macro events, and liquidity shifts can invalidate the setup.");
   return [...new Set(risks)].slice(0, 5);
@@ -66,14 +70,17 @@ async function generateLookouts(): Promise<LookoutsData> {
     return { ...stock, day, month, year, screenScore: screeningScore(day, month, year) };
   }).sort((first, second) => second.screenScore - first.screenScore);
 
-  const analyses = await Promise.all(screened.slice(0, 10).map(async (stock) => ({ stock, analysis: await getQuantAnalysis(stock.symbol) })));
+  const analyses = await Promise.all(screened.slice(0, 10).map(async (stock) => {
+    const [analysis, reportFeedback] = await Promise.all([getQuantAnalysis(stock.symbol), getFinancialFeedback(stock.symbol)]);
+    return { stock, analysis, reportFeedback };
+  }));
   const ranked = analyses
     .filter((entry): entry is typeof entry & { analysis: QuantAnalysis } => Boolean(entry.analysis))
-    .map((entry) => ({ ...entry, researchScore: candidateScore(entry.analysis, entry.stock.screenScore) }))
+    .map((entry) => ({ ...entry, researchScore: candidateScore(entry.analysis, entry.stock.screenScore, entry.reportFeedback) }))
     .sort((first, second) => second.researchScore - first.researchScore)
     .slice(0, 5);
 
-  const candidates = await Promise.all(ranked.map(async ({ stock, analysis, researchScore }, index): Promise<LookoutCandidate> => {
+  const candidates = await Promise.all(ranked.map(async ({ stock, analysis, reportFeedback, researchScore }, index): Promise<LookoutCandidate> => {
     const detail = await getStockDetail(stock.symbol, "1M");
     const forecast = analysis.forecasting.day60;
     const expectedProfitPercent = ((forecast.median - analysis.price) / analysis.price) * 100;
@@ -106,9 +113,10 @@ async function generateLookouts(): Promise<LookoutsData> {
         putPercent: analysis.options.putPercent,
         analystRating: analysis.options.analystRating,
       },
+      reportFeedback,
       pattern: analysis.pattern,
-      reasoning: buildReasoning(analysis, stock.month, stock.year),
-      risks: buildRisks(analysis, stock.month),
+      reasoning: buildReasoning(analysis, stock.month, stock.year, reportFeedback),
+      risks: buildRisks(analysis, stock.month, reportFeedback),
       news: detail?.news.slice(0, 3) ?? [],
     };
   }));
@@ -121,7 +129,7 @@ async function generateLookouts(): Promise<LookoutsData> {
     scannedStocks: stockUniverse.length,
     methodology: [
       "Ranks the full tracked US universe using day, month, and year price behavior.",
-      "Runs technical, fundamental, options, analyst, Monte Carlo, Sharpe, and pattern analysis on the leading shortlist.",
+      "Runs technical, fundamental, annual-report, balance-sheet, options, analyst, Monte Carlo, Sharpe, and pattern analysis on the leading shortlist.",
       "Combines model outputs into a transparent research score; scenarios are not promises or trade instructions.",
     ],
     candidates,
