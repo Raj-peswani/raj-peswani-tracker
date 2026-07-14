@@ -30,7 +30,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head><script dangerouslySetInnerHTML={{ __html: `let saved='';try{saved=localStorage.getItem('raj-tracker-theme')||''}catch{}if(!saved){saved=(document.cookie.match(/(?:^|; )raj-tracker-theme=(dark|light)/)||[])[1]||''}const dark=saved?saved==='dark':matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('dark',dark)` }} /></head>
-      <body className="min-h-full flex flex-col">{children}<ThemeToggle /></body>
+      <body className="min-h-full flex flex-col">{children}<a href="/api/auth/logout" className="fixed bottom-5 left-5 z-[60] rounded-full border border-[#d9dbd4] bg-white/90 px-3 py-2 text-[10px] font-semibold text-[#666c63] shadow-sm backdrop-blur transition hover:text-[#e85d24] dark:border-[#394037] dark:bg-[#1b1f19]/90">Logout</a><ThemeToggle /></body>
     </html>
   );
 }
